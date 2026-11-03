@@ -179,10 +179,6 @@
       Check Documents
     </button>
     <div class="spinner" id="spinner"></div>
-    <button class="btn btn-outline btn-sm" id="btn-sample" onclick="loadSample()"
-            title="Load the 10 sample PDFs from BIAI (demo only — will only work if files are in the project folder)">
-      Load BIAI sample files (demo only)
-    </button>
   </div>
 
   <div class="error-msg" id="error-box" style="display:none"></div>
@@ -419,32 +415,6 @@
     a.download = filename;
     a.click();
     URL.revokeObjectURL(a.href);
-  }
-
-  // ── Sample file loader (demo only) ────────────────────────────────────────
-  async function loadSample() {
-    setError('');
-    const files = [];
-    // Attempt to fetch sample files from the server (only works if deployed with them)
-    for (let i = 1; i <= 10; i++) {
-      const name = `supplier-pack-0${i < 10 ? '0'+i : i}.pdf`.replace('0010','10');
-      try {
-        const resp = await fetch('/static/samples/' + name);
-        if (resp.ok) {
-          const blob = await resp.blob();
-          files.push(new File([blob], name, {type: 'application/pdf'}));
-        }
-      } catch {}
-    }
-    if (!files.length) {
-      setError('Sample files not found on server. Please upload the 10 PDFs manually.');
-      return;
-    }
-    state.pdfs = files;
-    const info = document.getElementById('info-pdf');
-    info.textContent = `${files.length} sample file(s) loaded`;
-    document.getElementById('card-pdf').classList.add('has-file');
-    updateCheckButton();
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
