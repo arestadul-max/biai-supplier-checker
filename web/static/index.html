@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supplier Document Checker — BIAI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f8fafc; color: #1e293b;
+      min-height: 100vh; padding: 2rem 1rem;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+
+    h1 { font-size: 1.6rem; font-weight: 700; color: #0f172a; margin-bottom: 0.25rem; }
+    .subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 2rem; }
+    .notice {
+      background: #fef9c3; border: 1px solid #fde047;
+      border-radius: 6px; padding: 0.75rem 1rem;
+      font-size: 0.85rem; color: #713f12; margin-bottom: 1.5rem;
+    }
+
+    /* Upload cards */
+    .uploads { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .upload-card {
+      background: #fff; border: 2px dashed #cbd5e1; border-radius: 10px;
+      padding: 1.25rem 1rem; text-align: center; cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .upload-card:hover { border-color: #6366f1; background: #f5f3ff; }
+    .upload-card.has-file { border-color: #22c55e; background: #f0fdf4; }
+    .upload-card .icon { font-size: 2rem; }
+    .upload-card h3 { font-size: 0.95rem; font-weight: 600; margin: 0.5rem 0 0.25rem; }
+    .upload-card p { font-size: 0.8rem; color: #94a3b8; }
+    .upload-card .file-info { font-size: 0.8rem; color: #166534; font-weight: 500; margin-top: 0.5rem; word-break: break-all; }
+    input[type="file"] { display: none; }
+
+    /* Actions */
+    .actions { display: flex; gap: 0.75rem; margin-bottom: 2rem; align-items: center; flex-wrap: wrap; }
+    .btn {
+      padding: 0.65rem 1.25rem; border-radius: 7px; border: none;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: opacity .15s;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: #4f46e5; color: #fff; }
+    .btn-primary:not(:disabled):hover { background: #4338ca; }
+    .btn-outline { background: #fff; color: #4f46e5; border: 1.5px solid #4f46e5; }
+    .btn-outline:not(:disabled):hover { background: #f5f3ff; }
+    .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.82rem; }
+    .btn-green  { background: #16a34a; color: #fff; }
+    .btn-red    { background: #dc2626; color: #fff; }
+
+    /* Spinner */
+    .spinner { display: none; width: 22px; height: 22px; border: 3px solid #e2e8f0;
+               border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Summary bar */
+    .summary-bar {
+      display: none; background: #fff; border-radius: 10px;
+      padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+      border: 1px solid #e2e8f0;
+      display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;
+    }
+    .summary-bar .pill {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-weight: 600; font-size: 0.9rem; padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+    }
+    .pill-green  { background: #dcfce7; color: #15803d; }
+    .pill-red    { background: #fee2e2; color: #b91c1c; }
+    .pill-yellow { background: #fef9c3; color: #854d0e; }
+
+    /* Results table */
+    .results-section { display: none; }
+    h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; }
+    .result-card {
+      background: #fff; border-radius: 10px; border: 1px solid #e2e8f0;
+      margin-bottom: 0.85rem; overflow: hidden;
+    }
+    .result-header {
+      display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.9rem 1.1rem;
+      cursor: pointer; user-select: none;
+    }
+    .badge {
+      font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 12px;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .badge-approve { background: #dcfce7; color: #15803d; }
+    .badge-reject  { background: #fee2e2; color: #b91c1c; }
+    .badge-review  { background: #fef9c3; color: #854d0e; }
+    .result-header .info { flex: 1; }
+    .result-header .filename { font-weight: 600; font-size: 0.92rem; }
+    .result-header .supplier { color: #64748b; font-size: 0.82rem; }
+    .result-body { display: none; padding: 0 1.1rem 1rem; border-top: 1px solid #f1f5f9; }
+    .result-body.open { display: block; }
+
+    .label { font-size: 0.78rem; font-weight: 600; color: #64748b; text-transform: uppercase;
+              letter-spacing: 0.05em; margin: 0.75rem 0 0.3rem; }
+    .reason-list li { font-size: 0.88rem; color: #334155; margin-bottom: 0.2rem; padding-left: 0.5rem; }
+    .evidence-quote {
+      font-family: 'Courier New', monospace; font-size: 0.8rem;
+      background: #f8fafc; border-left: 3px solid #94a3b8;
+      padding: 0.4rem 0.6rem; margin: 0.25rem 0; border-radius: 0 4px 4px 0;
+      color: #475569; word-break: break-word;
+    }
+
+    /* Human override panel */
+    .override-panel {
+      background: #fef9c3; border: 1px solid #fde047; border-radius: 8px;
+      padding: 0.85rem 1rem; margin-top: 0.75rem;
+    }
+    .override-panel h4 { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.6rem; color: #713f12; }
+    .override-row { display: flex; gap: 0.5rem; align-items: flex-start; flex-wrap: wrap; }
+    .override-panel input[type="text"] {
+      border: 1px solid #d1d5db; border-radius: 5px; padding: 0.35rem 0.6rem;
+      font-size: 0.85rem; min-width: 140px; flex: 1;
+    }
+    .override-result { margin-top: 0.6rem; font-size: 0.85rem; font-weight: 600; }
+
+    /* Rules text */
+    .rules-section { display: none; margin-top: 2rem; }
+    .rules-text {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 1rem 1.25rem; font-size: 0.83rem; white-space: pre-wrap;
+      font-family: 'Courier New', monospace; color: #334155;
+      max-height: 300px; overflow-y: auto;
+    }
+
+    .error-msg { background: #fee2e2; color: #b91c1c; border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.88rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>🔍 Supplier Document Checker</h1>
+  <p class="subtitle">BIAI Round 2 · Task 1 · Built with AI (Claude) — all decisions by deterministic Python rules</p>
+
+  <div class="notice">
+    ⚠️ <strong>Do not upload real company or customer data.</strong>
+    Use only the sample files provided by BIAI.
+    Uploaded files are processed in a temporary folder and immediately deleted.
+  </div>
+
+  <!-- Upload boxes -->
+  <div class="uploads">
+    <!-- PDFs -->
+    <div class="upload-card" id="card-pdf" onclick="document.getElementById('input-pdf').click()">
+      <div class="icon">📄</div>
+      <h3>Supplier Quotations</h3>
+      <p>One or more PDF files, or a single ZIP containing PDFs</p>
+      <div class="file-info" id="info-pdf">No files selected</div>
+      <input type="file" id="input-pdf" multiple accept=".pdf,.zip" onchange="onFilePick('pdf', this)">
+    </div>
+
+    <!-- CSV -->
+    <div class="upload-card" id="card-csv" onclick="document.getElementById('input-csv').click()">
+      <div class="icon">📊</div>
+      <h3>Purchase Request</h3>
+      <p>purchase-request.csv (from BIAI)</p>
+      <div class="file-info" id="info-csv">No file selected</div>
+      <input type="file" id="input-csv" accept=".csv" onchange="onFilePick('csv', this)">
+    </div>
+
+    <!-- Rules -->
+    <div class="upload-card" id="card-rules" onclick="document.getElementById('input-rules').click()">
+      <div class="icon">📋</div>
+      <h3>Company Rules</h3>
+      <p>company-rules.md (displayed for reference only — not parsed automatically)</p>
+      <div class="file-info" id="info-rules">No file selected</div>
+      <input type="file" id="input-rules" accept=".md,.txt" onchange="onFilePick('rules', this)">
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn btn-primary" id="btn-check" disabled onclick="runCheck()">
+      Check Documents
+    </button>
+    <div class="spinner" id="spinner"></div>
+    <button class="btn btn-outline btn-sm" id="btn-sample" onclick="loadSample()"
+            title="Load the 10 sample PDFs from BIAI (demo only — will only work if files are in the project folder)">
+      Load BIAI sample files (demo only)
+    </button>
+  </div>
+
+  <div class="error-msg" id="error-box" style="display:none"></div>
+
+  <!-- Summary -->
+  <div class="summary-bar" id="summary-bar" style="display:none">
+    <span style="font-weight:700">Results:</span>
+    <span class="pill pill-green" id="pill-approve">✅ 0 Approve</span>
+    <span class="pill pill-red"   id="pill-reject">❌ 0 Reject</span>
+    <span class="pill pill-yellow" id="pill-review">⚠️ 0 Needs a person</span>
+    <button class="btn btn-outline btn-sm" onclick="downloadReport()">⬇ report.md</button>
+    <button class="btn btn-outline btn-sm" onclick="downloadJSON()">⬇ results.json</button>
+  </div>
+
+  <!-- Results -->
+  <div class="results-section" id="results-section">
+    <h2>Document Results</h2>
+    <div id="results-list"></div>
+  </div>
+
+  <!-- Rules text (reference) -->
+  <div class="rules-section" id="rules-section">
+    <h2>Uploaded Rules File (reference only)</h2>
+    <p style="font-size:0.82rem;color:#64748b;margin-bottom:0.5rem">
+      Rules are applied from the built-in configuration (<code>rules_config.json</code>).
+      This file is shown so you can confirm which rules were in force.
+      It is <strong>not parsed automatically</strong> — if the uploaded file differs from the config, the config wins.
+    </p>
+    <pre class="rules-text" id="rules-text"></pre>
+  </div>
+
+</div>
+
+<script>
+  // Global state
+  const state = { pdfs: null, csv: null, rules: null, results: [], rulesText: '' };
+
+  // ── File pick handlers ────────────────────────────────────────────────────
+  function onFilePick(kind, input) {
+    const card = document.getElementById('card-' + kind);
+    const info = document.getElementById('info-' + kind);
+
+    if (kind === 'pdf') {
+      if (!input.files.length) { state.pdfs = null; return; }
+      state.pdfs = Array.from(input.files);
+      const names = state.pdfs.map(f => f.name).join(', ');
+      const size  = (state.pdfs.reduce((s, f) => s + f.size, 0) / 1024).toFixed(1);
+      info.textContent = `${state.pdfs.length} file(s) · ${size} KB\n${names.length > 80 ? names.slice(0,80)+'…' : names}`;
+    } else if (kind === 'csv') {
+      state.csv = input.files[0] || null;
+      info.textContent = state.csv ? `${state.csv.name} (${(state.csv.size/1024).toFixed(1)} KB)` : 'No file selected';
+    } else if (kind === 'rules') {
+      state.rules = input.files[0] || null;
+      info.textContent = state.rules ? `${state.rules.name} (${(state.rules.size/1024).toFixed(1)} KB)` : 'No file selected';
+    }
+
+    card.classList.toggle('has-file',
+      kind === 'pdf' ? !!state.pdfs?.length :
+      kind === 'csv' ? !!state.csv : !!state.rules
+    );
+    updateCheckButton();
+  }
+
+  function updateCheckButton() {
+    document.getElementById('btn-check').disabled =
+      !state.pdfs?.length || !state.csv || !state.rules;
+  }
+
+  // ── Run check ─────────────────────────────────────────────────────────────
+  async function runCheck() {
+    setError('');
+    document.getElementById('results-section').style.display = 'none';
+    document.getElementById('summary-bar').style.display = 'none';
+    document.getElementById('rules-section').style.display = 'none';
+    document.getElementById('spinner').style.display = 'block';
+    document.getElementById('btn-check').disabled = true;
+
+    const form = new FormData();
+    state.pdfs.forEach(f => form.append('pdfs', f));
+    form.append('pr',    state.csv);
+    form.append('rules', state.rules);
+
+    try {
+      const resp = await fetch('/check', { method: 'POST', body: form });
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        setError(data.detail || 'Server error');
+        return;
+      }
+
+      state.results   = data.results;
+      state.rulesText = data.rules_text || '';
+      renderResults(data);
+    } catch (err) {
+      setError('Network error: ' + err.message);
+    } finally {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('btn-check').disabled = false;
+    }
+  }
+
+  // ── Render results ────────────────────────────────────────────────────────
+  function renderResults(data) {
+    const { results, summary } = data;
+
+    // Summary bar
+    document.getElementById('pill-approve').textContent = `✅ ${summary.approve} Approve`;
+    document.getElementById('pill-reject').textContent  = `❌ ${summary.reject} Reject`;
+    document.getElementById('pill-review').textContent  = `⚠️ ${summary.review} Needs a person`;
+    document.getElementById('summary-bar').style.display = 'flex';
+
+    // Results list
+    const list = document.getElementById('results-list');
+    list.innerHTML = '';
+    results.forEach((r, i) => list.appendChild(makeCard(r, i)));
+    document.getElementById('results-section').style.display = 'block';
+
+    // Rules text
+    if (state.rulesText) {
+      document.getElementById('rules-text').textContent = state.rulesText;
+      document.getElementById('rules-section').style.display = 'block';
+    }
+  }
+
+  function badgeClass(decision) {
+    if (decision === 'Approve') return 'badge-approve';
+    if (decision === 'Reject')  return 'badge-reject';
+    return 'badge-review';
+  }
+
+  function makeCard(r, idx) {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+
+    const decisLabel = r.human_override || r.decision;
+    const bClass = badgeClass(decisLabel);
+
+    const reasons  = (r.reasons || []).map(x => `<li>${esc(x)}</li>`).join('');
+    const evidence = (r.evidence || []).filter(Boolean)
+                       .map(x => `<div class="evidence-quote">"${esc(x)}"</div>`).join('');
+
+    // Override panel (only for NEEDS_PERSON)
+    let overrideHtml = '';
+    if (r.decision === 'Needs a person to check' && !r.human_override) {
+      overrideHtml = `
+        <div class="override-panel">
+          <h4>⚠️ This document needs a human decision</h4>
+          <div class="override-row">
+            <input type="text" id="name-${idx}" placeholder="Your name" />
+            <input type="text" id="reason-${idx}" placeholder="Reason for your decision" style="flex:2" />
+            <button class="btn btn-green btn-sm" onclick="applyOverride(${idx},'Approve')">Approve</button>
+            <button class="btn btn-red btn-sm"   onclick="applyOverride(${idx},'Reject')">Reject</button>
+          </div>
+          <div class="override-result" id="override-result-${idx}"></div>
+        </div>`;
+    } else if (r.human_override) {
+      overrideHtml = `<div style="font-size:0.85rem;color:#15803d;margin-top:0.5rem">
+        ✅ Human decision: <strong>${esc(r.human_override)}</strong>
+        by ${esc(r.human_name || 'Unknown')} — ${esc(r.human_reason || '')}
+      </div>`;
+    }
+
+    card.innerHTML = `
+      <div class="result-header" onclick="toggleCard(this)">
+        <span class="badge ${bClass}">${esc(decisLabel)}</span>
+        <div class="info">
+          <div class="filename">${esc(r.file)}</div>
+          <div class="supplier">${esc(r.supplier)} · Item ${esc(r.item)}</div>
+        </div>
+        <span style="color:#94a3b8;font-size:0.9rem">▼</span>
+      </div>
+      <div class="result-body" id="body-${idx}">
+        <div class="label">Decision</div>
+        <p style="font-size:0.9rem;font-weight:600">${esc(decisLabel)}</p>
+        <div class="label">Reasons</div>
+        <ul class="reason-list">${reasons}</ul>
+        ${evidence ? `<div class="label">Evidence (verbatim from document)</div>${evidence}` : ''}
+        ${r.error ? `<div class="label">Error</div><p style="color:#b91c1c;font-size:0.85rem">${esc(r.error)}</p>` : ''}
+        ${overrideHtml}
+      </div>`;
+
+    return card;
+  }
+
+  function toggleCard(header) {
+    const body = header.nextElementSibling;
+    const open = body.classList.toggle('open');
+    header.querySelector('span:last-child').textContent = open ? '▲' : '▼';
+  }
+
+  // ── Human override ────────────────────────────────────────────────────────
+  function applyOverride(idx, decision) {
+    const name   = document.getElementById('name-'   + idx).value.trim() || 'Anonymous';
+    const reason = document.getElementById('reason-' + idx).value.trim() || '(no reason given)';
+
+    state.results[idx].human_override = decision;
+    state.results[idx].human_name     = name;
+    state.results[idx].human_reason   = reason;
+
+    const resEl = document.getElementById('override-result-' + idx);
+    resEl.style.color = decision === 'Approve' ? '#15803d' : '#b91c1c';
+    resEl.textContent = `✓ Saved: ${decision} by ${name}`;
+
+    // Update summary counts
+    const approve = state.results.filter(r => (r.human_override || r.decision) === 'Approve').length;
+    const reject  = state.results.filter(r => (r.human_override || r.decision) === 'Reject').length;
+    const review  = state.results.filter(r => !r.human_override && r.decision === 'Needs a person to check').length;
+    document.getElementById('pill-approve').textContent = `✅ ${approve} Approve`;
+    document.getElementById('pill-reject').textContent  = `❌ ${reject} Reject`;
+    document.getElementById('pill-review').textContent  = `⚠️ ${review} Needs a person`;
+  }
+
+  // ── Downloads ─────────────────────────────────────────────────────────────
+  async function downloadReport() {
+    const resp = await fetch('/download-report', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ results: state.results, rules_text: state.rulesText }),
+    });
+    if (!resp.ok) { setError('Could not generate report'); return; }
+    const blob = await resp.blob();
+    downloadBlob(blob, 'report.md');
+  }
+
+  function downloadJSON() {
+    const data = JSON.stringify(state.results, null, 2);
+    downloadBlob(new Blob([data], {type:'application/json'}), 'results.json');
+  }
+
+  function downloadBlob(blob, filename) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ── Sample file loader (demo only) ────────────────────────────────────────
+  async function loadSample() {
+    setError('');
+    const files = [];
+    // Attempt to fetch sample files from the server (only works if deployed with them)
+    for (let i = 1; i <= 10; i++) {
+      const name = `supplier-pack-0${i < 10 ? '0'+i : i}.pdf`.replace('0010','10');
+      try {
+        const resp = await fetch('/static/samples/' + name);
+        if (resp.ok) {
+          const blob = await resp.blob();
+          files.push(new File([blob], name, {type: 'application/pdf'}));
+        }
+      } catch {}
+    }
+    if (!files.length) {
+      setError('Sample files not found on server. Please upload the 10 PDFs manually.');
+      return;
+    }
+    state.pdfs = files;
+    const info = document.getElementById('info-pdf');
+    info.textContent = `${files.length} sample file(s) loaded`;
+    document.getElementById('card-pdf').classList.add('has-file');
+    updateCheckButton();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function setError(msg) {
+    const el = document.getElementById('error-box');
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg;
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

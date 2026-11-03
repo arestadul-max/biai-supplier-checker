@@ -1,0 +1,13 @@
+{
+  "_comment": "All numeric thresholds live here. Change a number here and the whole system changes. Do NOT put threshold numbers anywhere else in the code.",
+  "price_over_max_reject_pct": 3.0,
+  "advance_max_pct": 20.0,
+  "delivery_reject_days": 45,
+  "delivery_review_days_min": 31,
+  "delivery_review_days_max": 45,
+  "payment_days_min": 30,
+  "payment_days_max": 60,
+  "validity_min_days": 30,
+  "penalty_min_pct": 0.5,
+  "qty_tolerance_pct": 5.0
+}
