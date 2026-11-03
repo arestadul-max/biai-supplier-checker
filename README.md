@@ -39,13 +39,13 @@ Outputs: `outputs/report.md` and `outputs/results.json`.
 
 Add `--interactive` to approve or reject uncertain cases from the terminal.
 
-**Run all 10 sample files at once (PowerShell):**
+**Run all 10 BIAI sample files at once** (place them in `sample-data/` first — see below):
 
-```powershell
-python cli.py `
-  --pdfs "C:\Users\User\Downloads\BIAI-AI-Engineer-Round2-Pack\sample-data\engineer\task1-procurement\supplier-pack-*.pdf" `
-  --pr   "C:\Users\User\Downloads\BIAI-AI-Engineer-Round2-Pack\sample-data\engineer\task1-procurement\purchase-request.csv" `
-  --rules "C:\Users\User\Downloads\BIAI-AI-Engineer-Round2-Pack\sample-data\engineer\task1-procurement\company-rules.md"
+```bash
+python cli.py \
+  --pdfs  sample-data/supplier-pack-*.pdf \
+  --pr    sample-data/purchase-request.csv \
+  --rules sample-data/company-rules.md
 ```
 
 ### 3. Web app (local)
@@ -88,6 +88,35 @@ BIAI_Task1/
 ├── requirements.txt
 └── render.yaml         ← Render.com deployment config
 ```
+
+---
+
+## Sample data (BIAI evaluators)
+
+The BIAI sample files are not committed to this repo (they belong to BIAI).
+Place them in a `sample-data/` folder at the repo root:
+
+```
+BIAI_Task1/
+└── sample-data/
+    ├── supplier-pack-01.pdf
+    ├── supplier-pack-02.pdf
+    ...
+    ├── supplier-pack-10.pdf
+    ├── purchase-request.csv
+    └── company-rules.md
+```
+
+Integration tests (`test_pipeline.py`) skip automatically when `sample-data/` is absent.
+If your files are somewhere else, set the env variable before running tests:
+
+```bash
+set BIAI_SAMPLE_DIR=C:\path\to\your\files   # Windows
+export BIAI_SAMPLE_DIR=/path/to/your/files  # Mac/Linux
+pytest tests/ -v
+```
+
+The **web app** needs no local files — just upload through the browser.
 
 ---
 

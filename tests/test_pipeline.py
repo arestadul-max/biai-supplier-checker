@@ -21,13 +21,22 @@ from src.models import APPROVE, REJECT, NEEDS_PERSON, VALID_DECISIONS
 from src.pipeline import load_config, load_pr_items, run_pipeline, run_batch
 
 # ── Paths to sample data ──────────────────────────────────────────────────────
-SAMPLE_DIR = Path("C:/Users/User/Downloads/BIAI-AI-Engineer-Round2-Pack/sample-data/engineer/task1-procurement")
+# Resolution order:
+#   1. BIAI_SAMPLE_DIR env variable (any absolute path)
+#   2. sample-data/ folder next to this repo (default, not committed)
+_env_dir = os.environ.get("BIAI_SAMPLE_DIR")
+SAMPLE_DIR = Path(_env_dir) if _env_dir else Path(__file__).parent.parent / "sample-data"
 PR_CSV     = SAMPLE_DIR / "purchase-request.csv"
 
-# Skip all tests if sample data not available (CI environment)
+# Skip all integration tests if sample data not present (CI, fresh clone)
 SAMPLES_AVAILABLE = SAMPLE_DIR.exists() and PR_CSV.exists()
 skip_if_no_samples = pytest.mark.skipif(
-    not SAMPLES_AVAILABLE, reason="BIAI sample data not found at expected path"
+    not SAMPLES_AVAILABLE,
+    reason=(
+        "BIAI sample data not found. "
+        "Place the BIAI sample files in sample-data/ at the repo root, "
+        "or set BIAI_SAMPLE_DIR=/path/to/sample/files and re-run."
+    ),
 )
 
 # Load config and PR items once for the test session
