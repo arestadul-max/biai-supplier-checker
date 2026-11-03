@@ -27,6 +27,7 @@ Two inviolable rules:
 There are two interfaces:
 - **CLI** (`cli.py`) — bulk-process PDFs, write `outputs/report.md` + `outputs/results.json`
 - **Web app** (`web/app.py`) — drag-and-drop UI, human-override panel, download report
+  → **Live demo:** https://biai-supplier-checker.onrender.com
 
 ---
 

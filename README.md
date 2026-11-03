@@ -48,7 +48,11 @@ python cli.py \
   --rules sample-data/company-rules.md
 ```
 
-### 3. Web app (local)
+### 3. Web app
+
+**Live demo:** [https://biai-supplier-checker.onrender.com](https://biai-supplier-checker.onrender.com)
+
+To run locally:
 
 ```bash
 uvicorn web.app:app --reload --port 8000
