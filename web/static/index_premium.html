@@ -1755,17 +1755,130 @@ function applyOv(uid, dec){
 function dlFile(name,content,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click(); }
 function dlJSON(){ if(window._lastData) dlFile('results.json',JSON.stringify(window._lastData,null,2),'application/json'); }
 
-function _printHTML(html){
-  // Download report as an HTML file — open in browser and use Print > Save as PDF
-  const blob = new Blob([html], {type:'text/html'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'doccheck-report.html';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url), 5000);
+function _loadJsPDF(cb){
+  if(window.jspdf){cb();return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  s.onload=()=>cb();
+  s.onerror=()=>alert('Could not load PDF library. Check your internet connection.');
+  document.head.appendChild(s);
+}
+
+function _downloadPDF(results, summary, rulesName, dateStr){
+  _loadJsPDF(()=>{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const W=doc.internal.pageSize.getWidth();
+    const H=doc.internal.pageSize.getHeight();
+    const ML=15, MR=15, contentW=W-ML-MR;
+    let y=ML;
+
+    const decRGB=d=>d==='Approve'?[5,150,105]:d==='Reject'?[220,38,38]:[217,119,6];
+    const decBgRGB=d=>d==='Approve'?[236,253,245]:d==='Reject'?[254,242,242]:[255,251,235];
+
+    function newPage(){doc.addPage();y=ML;}
+    function pageBreak(need=10){if(y+need>H-12)newPage();}
+
+    function ln(text, x, fs, bold, rgb, maxW){
+      doc.setFontSize(fs||9);
+      doc.setFont('helvetica',bold?'bold':'normal');
+      doc.setTextColor(...(rgb||[30,30,30]));
+      const lines=doc.splitTextToSize(String(text||''), maxW||contentW);
+      pageBreak(lines.length*(fs||9)*0.42+2);
+      doc.text(lines, x||ML, y);
+      y+=lines.length*(fs||9)*0.42+1;
+    }
+
+    // ── HEADER BAR ──
+    doc.setFillColor(99,102,241);
+    doc.rect(0,0,W,18,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(255,255,255);
+    doc.text('DocCheck — Compliance Report', ML, 11.5);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);
+    doc.text(dateStr, W-MR, 11.5, {align:'right'});
+    y=24;
+
+    // ── SUMMARY ──
+    const a=summary.approve||0, rj=summary.reject||0, rv=summary.review||0, tot=summary.total||results.length;
+    ln(`Rules applied: ${rulesName}`, ML, 8, false, [100,100,100]);
+    ln(`${tot} documents  •  ${a} Approved  •  ${rj} Rejected  •  ${rv} Needs Review`, ML, 10, true);
+    y+=3;
+    doc.setDrawColor(220,220,220);doc.line(ML,y,W-MR,y);y+=5;
+
+    // ── PER-DOCUMENT SECTIONS ──
+    results.forEach(r=>{
+      pageBreak(22);
+      const col=decRGB(r.decision||'');
+      const bg=decBgRGB(r.decision||'');
+      const badge=r.decision==='Approve'?'APPROVE':r.decision==='Reject'?'REJECT':'NEEDS REVIEW';
+
+      // coloured header row
+      doc.setFillColor(...bg);
+      doc.rect(ML,y-3,contentW,10,'F');
+      doc.setFillColor(...col);
+      doc.rect(ML,y-3,24,10,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(255,255,255);
+      doc.text(badge, ML+1.5, y+3.5);
+      doc.setFontSize(10);doc.setTextColor(...col);
+      doc.text(String(r.supplier||r.file||'—'), ML+26, y+3.5);
+      doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);
+      doc.text(`Item ${r.item||'?'}  •  ${r.file||'—'}`, W-MR, y+3.5, {align:'right'});
+      y+=10;
+
+      // details line
+      const deets=[];
+      if(r.quantity) deets.push(`Qty: ${r.quantity}${r.unit?' '+r.unit:''}`);
+      if(r.unit_price) deets.push(`Unit Price: BDT ${r.unit_price}`);
+      if(r.description) deets.push(r.description);
+      if(deets.length) ln(deets.join('   '), ML, 8.5, false, [80,80,80]);
+      y+=1;
+
+      // reasons
+      if(r.reasons?.length){
+        ln('Decision Reasons:', ML, 8.5, true, [50,50,50]);
+        r.reasons.forEach(rs=>ln(`• ${rs}`, ML+3, 8.5, false, [50,50,50], contentW-3));
+        y+=1;
+      }
+
+      // evidence
+      if(r.evidence?.length){
+        ln('Evidence from document:', ML, 8.5, true, [50,50,50]);
+        r.evidence.forEach(ev=>{
+          const evLines=doc.splitTextToSize(`"${ev}"`, contentW-6);
+          const evH=evLines.length*3.6+3;
+          pageBreak(evH+2);
+          doc.setFillColor(248,248,248);doc.rect(ML,y-1.5,contentW,evH,'F');
+          doc.setFillColor(...col);doc.rect(ML,y-1.5,2,evH,'F');
+          doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(70,70,70);
+          doc.text(evLines, ML+4, y+2);
+          y+=evH+1;
+        });
+      }
+
+      // human override
+      if(r.human_override){
+        ln(`Override: ${r.human_override} by ${r.human_name||'?'} — ${r.human_reason||''}`, ML, 8, false, [99,102,241]);
+      }
+
+      // error
+      if(r.error){
+        ln(`Error: ${r.error}`, ML, 8, false, [220,38,38]);
+      }
+
+      y+=3;
+      doc.setDrawColor(230,230,230);doc.line(ML,y,W-MR,y);y+=4;
+    });
+
+    // ── PAGE NUMBERS ──
+    const pages=doc.getNumberOfPages();
+    for(let i=1;i<=pages;i++){
+      doc.setPage(i);
+      doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(160,160,160);
+      doc.text(`DocCheck Compliance Report  •  Page ${i} of ${pages}`, W/2, H-5, {align:'center'});
+    }
+
+    doc.save('doccheck-report.pdf');
+  });
 }
 
 function buildResultsPrintHTML(results, summary, rulesName, dateStr){
@@ -1861,7 +1974,7 @@ function dlReport(){
   const now=new Date();
   const dateStr=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
   const rulesName=st.rules?.name||'Company rules';
-  _printHTML(buildResultsPrintHTML(window._lastData.results, window._lastData.summary||{}, rulesName, dateStr));
+  _downloadPDF(window._lastData.results, window._lastData.summary||{}, rulesName, dateStr);
 }
 
 function downloadSessionPDF(id){
@@ -1870,7 +1983,7 @@ function downloadSessionPDF(id){
   if(!h) return;
   const d=new Date(h.date);
   const dateStr=d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-  _printHTML(buildResultsPrintHTML(h.results, h.summary||{}, h.rules_name||'Company rules', dateStr));
+  _downloadPDF(h.results, h.summary||{}, h.rules_name||'Company rules', dateStr);
 }
 
 /* ── BOOT ── */
