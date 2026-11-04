@@ -14,9 +14,10 @@ import zipfile
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session as DBSession
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -25,6 +26,8 @@ from src.models import APPROVE, REJECT, NEEDS_PERSON
 from src.pipeline import load_config, load_pr_items, run_batch
 from src.extractor import extract_pdf_text   # used for PDF content validation
 from src.rules_parser import parse_rules_config
+from src.database import CheckSession as DBCheckSession, User as DBUser, get_db, init_db, session_to_dict
+from src.auth import create_token, decode_token, hash_password, verify_password
 
 
 # ── Constants ─────────────────────────────────────────────────────────────────
@@ -39,6 +42,135 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 app = FastAPI(title="Supplier Document Checker", version="1.0.0")
+
+
+@app.on_event("startup")
+def on_startup():
+    init_db()
+
+
+# ── Auth helpers ──────────────────────────────────────────────────────────────
+
+def _get_current_user(
+    authorization: Optional[str] = Header(default=None),
+    db: DBSession = Depends(get_db),
+) -> DBUser:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    payload = decode_token(authorization[7:])
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    user = db.query(DBUser).filter(DBUser.id == int(payload["sub"])).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+
+# ── Auth endpoints ────────────────────────────────────────────────────────────
+
+@app.post("/auth/register")
+async def register(payload: dict, db: DBSession = Depends(get_db)):
+    email    = (payload.get("email") or "").strip().lower()
+    password = payload.get("password") or ""
+    name     = (payload.get("name") or email).strip()
+    if not email or not password:
+        raise HTTPException(400, "Email and password required")
+    if len(password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    if db.query(DBUser).filter(DBUser.email == email).first():
+        raise HTTPException(400, "An account with this email already exists")
+    user = DBUser(email=email, name=name, password_hash=hash_password(password))
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return {"token": create_token(user.id, user.email), "id": user.id,
+            "email": user.email, "name": user.name}
+
+
+@app.post("/auth/login")
+async def login(payload: dict, db: DBSession = Depends(get_db)):
+    email    = (payload.get("email") or "").strip().lower()
+    password = payload.get("password") or ""
+    user = db.query(DBUser).filter(DBUser.email == email).first()
+    if not user or not verify_password(password, user.password_hash):
+        raise HTTPException(401, "Incorrect email or password")
+    return {"token": create_token(user.id, user.email), "id": user.id,
+            "email": user.email, "name": user.name}
+
+
+@app.get("/auth/me")
+async def me(current_user: DBUser = Depends(_get_current_user)):
+    return {"id": current_user.id, "email": current_user.email, "name": current_user.name}
+
+
+# ── Session history endpoints ─────────────────────────────────────────────────
+
+@app.get("/sessions")
+async def list_sessions(
+    current_user: DBUser = Depends(_get_current_user),
+    db: DBSession = Depends(get_db),
+):
+    rows = (
+        db.query(DBCheckSession)
+        .filter(DBCheckSession.user_id == current_user.id)
+        .order_by(DBCheckSession.date.desc())
+        .all()
+    )
+    return [session_to_dict(r, current_user.email) for r in rows]
+
+
+@app.post("/sessions/{session_id}")
+async def save_session(
+    session_id: str,
+    payload: dict,
+    current_user: DBUser = Depends(_get_current_user),
+    db: DBSession = Depends(get_db),
+):
+    if db.query(DBCheckSession).filter(
+        DBCheckSession.id == session_id,
+        DBCheckSession.user_id == current_user.id,
+    ).first():
+        return {"ok": True}   # already saved — idempotent
+
+    sess = DBCheckSession(
+        id              = session_id,
+        user_id         = current_user.id,
+        date            = payload.get("date") or "",
+        summary         = json.dumps(payload.get("summary") or {}),
+        results         = json.dumps(payload.get("results") or []),
+        rules_text      = payload.get("rules_text") or "",
+        rules_name      = payload.get("rules_name") or "",
+        applied_sources = json.dumps(payload.get("applied_sources") or []),
+    )
+    db.add(sess)
+    db.commit()
+    return {"ok": True}
+
+
+@app.delete("/sessions/{session_id}")
+async def delete_session(
+    session_id: str,
+    current_user: DBUser = Depends(_get_current_user),
+    db: DBSession = Depends(get_db),
+):
+    db.query(DBCheckSession).filter(
+        DBCheckSession.id == session_id,
+        DBCheckSession.user_id == current_user.id,
+    ).delete()
+    db.commit()
+    return {"ok": True}
+
+
+@app.delete("/sessions")
+async def clear_sessions(
+    current_user: DBUser = Depends(_get_current_user),
+    db: DBSession = Depends(get_db),
+):
+    db.query(DBCheckSession).filter(
+        DBCheckSession.user_id == current_user.id,
+    ).delete()
+    db.commit()
+    return {"ok": True}
 
 
 @app.middleware("http")

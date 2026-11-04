@@ -11,3 +11,4 @@ sample-data/
 .DS_Store
 Thumbs.db
 *.tmp
+*.db

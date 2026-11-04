@@ -813,7 +813,7 @@ details.thresh-box:not([open]) .thresh-sum::after{content:'▼';}
           <input class="finput" id="l-pw" type="password" placeholder="••••••••" autocomplete="current-password">
         </div>
         <div id="l-err" class="form-err" hidden></div>
-        <button class="btn btn-solid" style="width:100%;margin-top:10px;justify-content:center;padding:11px" onclick="doLogin()">Sign in →</button>
+        <button id="l-submit" class="btn btn-solid" style="width:100%;margin-top:10px;justify-content:center;padding:11px" onclick="doLogin()">Sign in →</button>
         <div class="auth-switch" style="text-align:center;margin-top:20px">No account? <a onclick="showAuth('register')">Create one</a></div>
       </div>
       <div id="pane-register" class="auth-box" hidden>
@@ -839,7 +839,7 @@ details.thresh-box:not([open]) .thresh-sum::after{content:'▼';}
           <input class="finput" id="r-pw" type="password" placeholder="Min 6 characters" autocomplete="new-password">
         </div>
         <div id="r-err" class="form-err" hidden></div>
-        <button class="btn btn-solid" style="width:100%;margin-top:10px;justify-content:center;padding:11px" onclick="doRegister()">Create account →</button>
+        <button id="r-submit" class="btn btn-solid" style="width:100%;margin-top:10px;justify-content:center;padding:11px" onclick="doRegister()">Create account →</button>
         <div class="auth-switch" style="text-align:center;margin-top:20px">Already have an account? <a onclick="showAuth('login')">Sign in</a></div>
       </div>
     </div>
@@ -1100,14 +1100,15 @@ function showModal(title, msg, confirmLabel, cb){
 function modalConfirm(){ $('modal-overlay').hidden=true; if(_modalCb){ _modalCb(); _modalCb=null; } }
 function modalCancel() { $('modal-overlay').hidden=true; _modalCb=null; }
 
-/* ── AUTH ── */
-function getSession()       { return localStorage.getItem(NS+'session'); }
-function setSession(e)      { localStorage.setItem(NS+'session', e); }
-function clearSession()     { localStorage.removeItem(NS+'session'); }
-function getUsers()         { try{ return JSON.parse(localStorage.getItem(NS+'users')||'{}'); }catch(e){ return {}; } }
-function saveUser(e,pw,nm)  { const u=getUsers(); u[e]={pw,name:nm||e}; localStorage.setItem(NS+'users',JSON.stringify(u)); }
-function checkUser(e,pw)    { const u=getUsers(); return u[e]&&u[e].pw===pw; }
-function getUserName(e)     { const u=getUsers(); return (u[e]&&u[e].name)||e; }
+/* ── AUTH (server-side) ── */
+let _sessions = [];      // in-memory session cache (loaded from API on login)
+let _currentUser = null; // {id, email, name}
+
+function getToken()    { try{ return localStorage.getItem(NS+'token'); }catch(_){ return null; } }
+function setToken(t)   { localStorage.setItem(NS+'token', t); }
+function clearToken()  { localStorage.removeItem(NS+'token'); }
+function authHdrs()    { const t=getToken(); return t?{'Authorization':'Bearer '+t,'Content-Type':'application/json'}:{'Content-Type':'application/json'}; }
+function getEmail()    { return _currentUser?.email||''; }
 
 function showAuth(pane){
   $('pane-login').hidden    = pane!=='login';
@@ -1116,42 +1117,78 @@ function showAuth(pane){
 }
 function showErr(id,msg){ const el=$(id); el.textContent=msg; el.hidden=false; }
 
-function doLogin(){
+async function doLogin(){
   const e=($('l-email').value||'').trim().toLowerCase();
   const pw=$('l-pw').value;
   if(!e||!pw){ showErr('l-err','Enter email and password.'); return; }
-  if(!checkUser(e,pw)){ showErr('l-err','Incorrect email or password.'); return; }
-  setSession(e); bootApp();
+  const btn=$('l-submit'); if(btn){btn.disabled=true;btn.textContent='Signing in…';}
+  try{
+    const r=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:pw})});
+    const d=await r.json();
+    if(!r.ok){ showErr('l-err',d.detail||'Incorrect email or password.'); return; }
+    setToken(d.token);
+    _currentUser={id:d.id,email:d.email,name:d.name};
+    await _loadSessions();
+    bootApp();
+  }catch(_){ showErr('l-err','Connection error. Try again.'); }
+  finally{ if(btn){btn.disabled=false;btn.textContent='Sign in →';} }
 }
-function doRegister(){
+
+async function doRegister(){
   const nm=($('r-name').value||'').trim();
   const e=($('r-email').value||'').trim().toLowerCase();
   const pw=$('r-pw').value;
   if(!e||!pw){ showErr('r-err','Enter email and password.'); return; }
   if(pw.length<6){ showErr('r-err','Password must be at least 6 characters.'); return; }
-  if(getUsers()[e]){ showErr('r-err','An account with this email already exists.'); return; }
-  saveUser(e,pw,nm); setSession(e); bootApp();
+  const btn=$('r-submit'); if(btn){btn.disabled=true;btn.textContent='Creating…';}
+  try{
+    const r=await fetch('/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:pw,name:nm||e})});
+    const d=await r.json();
+    if(!r.ok){ showErr('r-err',d.detail||'Could not create account.'); return; }
+    setToken(d.token);
+    _currentUser={id:d.id,email:d.email,name:d.name};
+    _sessions=[];
+    bootApp();
+  }catch(_){ showErr('r-err','Connection error. Try again.'); }
+  finally{ if(btn){btn.disabled=false;btn.textContent='Create account →';} }
 }
+
 function doLogout(){
-  clearSession();
+  clearToken(); _currentUser=null; _sessions=[];
   $('app-wrap').hidden=true;
   $('auth-wrap').hidden=false;
   showAuth('login');
   $('l-email').value=$('l-pw').value='';
 }
 
-function bootApp(){
-  const email=getSession();
-  if(!email){ $('auth-wrap').hidden=false; $('app-wrap').hidden=true; showAuth('login'); return; }
+async function _loadSessions(){
+  const token=getToken(); if(!token) return;
+  try{
+    const r=await fetch('/sessions',{headers:{'Authorization':'Bearer '+token}});
+    if(r.ok) _sessions=await r.json();
+    else if(r.status===401){ clearToken(); _currentUser=null; }
+  }catch(_){}
+}
+
+async function bootApp(){
+  const token=getToken();
+  if(!token){ $('auth-wrap').hidden=false; $('app-wrap').hidden=true; showAuth('login'); return; }
+  if(!_currentUser){
+    try{
+      const r=await fetch('/auth/me',{headers:{'Authorization':'Bearer '+token}});
+      if(!r.ok){ clearToken(); bootApp(); return; }
+      _currentUser=await r.json();
+      await _loadSessions();
+    }catch(_){ _currentUser={email:'',name:'User'}; }
+  }
   $('auth-wrap').hidden=true; $('app-wrap').hidden=false;
   initTheme();
-  const name=getUserName(email);
-  const first=name.split(' ')[0]||email.split('@')[0];
+  const name=_currentUser.name||_currentUser.email;
+  const first=name.split(' ')[0]||name.split('@')[0]||'User';
   $('user-label').textContent=first;
-  /* show first initial in the avatar dot */
   const dot=$('user-dot-initial');
   if(dot) dot.textContent=(first[0]||'?').toUpperCase();
-  $('settings-email').textContent=email;
+  $('settings-email').textContent=_currentUser.email;
   $('dash-sub').textContent='Welcome back, '+first;
   refreshStats(); showView('dashboard');
 }
@@ -1223,33 +1260,32 @@ function setHRange(preset){
   renderHistory();
 }
 
-/* ── HISTORY DATA ── */
-function getHistory(){
-  const email = getSession();
-  try{ return JSON.parse(localStorage.getItem(NS+'history')||'[]').filter(h=>h.email===email); }
-  catch(_){ return []; }
-}
+/* ── HISTORY DATA (server-backed) ── */
+function getHistory(){ return _sessions; }
+
 function saveCheck(data){
-  const email = getSession();
-  const all   = JSON.parse(localStorage.getItem(NS+'history')||'[]');
-  all.unshift({ id:Date.now().toString(36), email, date:new Date().toISOString(), summary:data.summary, results:data.results, rules_text:data.rules_text||'', rules_name:st.rules?.name||'', applied_sources:data.applied_sources||[] });
-  localStorage.setItem(NS+'history', JSON.stringify(all.slice(0,200)));
+  const id=Date.now().toString(36)+(Math.random()*36|0).toString(36);
+  const sess={ id, email:getEmail(), date:new Date().toISOString(), summary:data.summary, results:data.results, rules_text:data.rules_text||'', rules_name:st.rules?.name||'', applied_sources:data.applied_sources||[] };
+  _sessions.unshift(sess);
+  const token=getToken();
+  if(token) fetch('/sessions/'+id,{method:'POST',headers:authHdrs(),body:JSON.stringify(sess)}).catch(()=>{});
 }
+
 function clearHistory(){
   showModal('Clear all history?','This will permanently remove all check sessions for your account. This cannot be undone.','Clear all', ()=>{
-    const email=getSession();
-    const all=JSON.parse(localStorage.getItem(NS+'history')||'[]').filter(h=>h.email!==email);
-    localStorage.setItem(NS+'history',JSON.stringify(all));
+    const token=getToken();
+    if(token) fetch('/sessions',{method:'DELETE',headers:{'Authorization':'Bearer '+token}}).catch(()=>{});
+    _sessions=[];
     refreshStats(); renderHistory();
   });
 }
+
 function deleteSession(id){
   showModal('Delete session?','This check session and all its results will be permanently removed.','Delete', ()=>{
-    const all=JSON.parse(localStorage.getItem(NS+'history')||'[]');
-    const idx=all.findIndex(h=>h.id===id);
-    if(idx===-1) return;
-    all.splice(idx,1);
-    localStorage.setItem(NS+'history',JSON.stringify(all));
+    const idx=_sessions.findIndex(h=>h.id===id);
+    if(idx!==-1) _sessions.splice(idx,1);
+    const token=getToken();
+    if(token) fetch('/sessions/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}}).catch(()=>{});
     const card=document.getElementById('sc-'+id);
     if(card){ card.style.transition='opacity .18s'; card.style.opacity='0'; setTimeout(()=>{ refreshStats(); renderHistory(); },180); }
     else { refreshStats(); renderHistory(); }
