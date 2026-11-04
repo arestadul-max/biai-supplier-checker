@@ -1758,26 +1758,33 @@ function dlJSON(){ if(window._lastData) dlFile('results.json',JSON.stringify(win
 function _printHTML(html){
   const prev = document.getElementById('_report-overlay');
   if(prev) prev.remove();
-  const overlay = document.createElement('div');
-  overlay.id = '_report-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:900;background:#fff;display:flex;flex-direction:column;';
-  overlay.innerHTML = `
-    <div style="background:#111827;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:.82rem;border-radius:0;">
-      <span>Report Preview</span>
-      <button onclick="document.getElementById('_print-frame').contentWindow.print()"
-        style="margin-left:auto;padding:7px 16px;background:#6366F1;color:#fff;border:none;cursor:pointer;font-family:inherit;font-weight:600;font-size:.78rem;border-radius:6px;">
-        Save as PDF
-      </button>
-      <button onclick="document.getElementById('_report-overlay').remove()"
-        style="padding:7px 14px;background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2);cursor:pointer;font-family:inherit;font-weight:600;font-size:.78rem;border-radius:6px;">
-        ✕ Close
-      </button>
-    </div>
-    <iframe id="_print-frame" style="flex:1;border:none;background:#fff;"></iframe>`;
-  document.body.appendChild(overlay);
-  const frame = document.getElementById('_print-frame');
-  const doc = frame.contentDocument || frame.contentWindow.document;
-  doc.open(); doc.write(html); doc.close();
+  // Open report in a new tab so the browser's native Print/Save-as-PDF works on all devices
+  const blob = new Blob([html], {type:'text/html'});
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  // After the new tab loads, trigger the print dialog automatically
+  if(win){
+    win.addEventListener('load', ()=>{ win.print(); }, {once:true});
+  } else {
+    // Popup blocked — fall back to in-page overlay
+    const overlay = document.createElement('div');
+    overlay.id = '_report-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:900;background:#fff;display:flex;flex-direction:column;';
+    overlay.innerHTML = `
+      <div style="background:#111827;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:.82rem;border-radius:0;">
+        <span>Report Preview</span>
+        <button onclick="document.getElementById('_print-frame').contentWindow.print()"
+          style="margin-left:auto;padding:7px 16px;background:#6366F1;color:#fff;border:none;cursor:pointer;font-family:inherit;font-weight:600;font-size:.78rem;border-radius:6px;">
+          Save as PDF
+        </button>
+        <button onclick="document.getElementById('_report-overlay').remove();URL.revokeObjectURL('${url}')"
+          style="padding:7px 14px;background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2);cursor:pointer;font-family:inherit;font-weight:600;font-size:.78rem;border-radius:6px;">
+          ✕ Close
+        </button>
+      </div>
+      <iframe id="_print-frame" style="flex:1;border:none;background:#fff;" src="${url}"></iframe>`;
+    document.body.appendChild(overlay);
+  }
 }
 
 function buildResultsPrintHTML(results, summary, rulesName, dateStr){
