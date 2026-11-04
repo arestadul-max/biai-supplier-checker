@@ -1,0 +1,1649 @@
+<title>DocCheck</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&family=Space+Mono&display=swap" rel="stylesheet">
+
+<style>
+/* ── TOKENS ── editorial palette, light default */
+:root {
+  --bg:       #FAFAF8;
+  --panel:    #F2F1EE;
+  --bk:       #111111;
+  --bk-lt:    #E0DEDB;
+  --bk-xlt:   #EDECE9;
+  --txt:      #111111;
+  --txt-mid:  #686660;
+  --txt-soft: #9C9A95;
+  --green:    #0D6B39;
+  --green-bg: #EDF7F2;
+  --red:      #A61A1A;
+  --red-bg:   #FDF2F2;
+  --amber:    #885200;
+  --amber-bg: #FDF7ED;
+  color-scheme: light;
+}
+/* dark tokens — applied by OS preference or explicit toggle */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:       #131312;
+    --panel:    #1D1D1B;
+    --bk:       #EDECE9;
+    --bk-lt:    #2C2C29;
+    --bk-xlt:   #222220;
+    --txt:      #EDECE9;
+    --txt-mid:  #888680;
+    --txt-soft: #555350;
+    --green:    #2DB865;
+    --green-bg: #0C2218;
+    --red:      #D95555;
+    --red-bg:   #2A0E0E;
+    --amber:    #CC8C1A;
+    --amber-bg: #261808;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:       #131312;
+  --panel:    #1D1D1B;
+  --bk:       #EDECE9;
+  --bk-lt:    #2C2C29;
+  --bk-xlt:   #222220;
+  --txt:      #EDECE9;
+  --txt-mid:  #888680;
+  --txt-soft: #555350;
+  --green:    #2DB865;
+  --green-bg: #0C2218;
+  --red:      #D95555;
+  --red-bg:   #2A0E0E;
+  --amber:    #CC8C1A;
+  --amber-bg: #261808;
+  color-scheme: dark;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{font-size:16px}
+body{
+  font-family:'Barlow',system-ui,sans-serif;
+  background:var(--bg);color:var(--txt);
+  line-height:1.55;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+
+/* ── TOP BAR ── */
+.topbar{
+  position:sticky;top:0;z-index:200;
+  background:var(--bg);
+  border-bottom:2px solid var(--bk);
+  display:flex;align-items:center;
+  padding:0 max(16px,env(safe-area-inset-left,0px));
+  height:52px;
+}
+.logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:800;font-size:1.1rem;
+  letter-spacing:-0.01em;text-transform:uppercase;
+  margin-right:32px;flex-shrink:0;
+}
+.logo-mark{
+  display:grid;grid-template-columns:1fr 1fr;gap:3px;
+  width:22px;height:22px;
+}
+.logo-mark span{display:block;background:var(--bk);width:100%;height:100%;}
+.logo-mark span:nth-child(3){background:transparent;border:2px solid var(--bk);}
+.nav{display:flex;flex:1}
+.nav-btn{
+  height:52px;padding:0 14px;
+  display:flex;align-items:center;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:0.7rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--txt-soft);border:none;background:none;
+  border-bottom:2px solid transparent;margin-bottom:-2px;
+  transition:color .1s,border-color .1s;
+}
+.nav-btn:hover,.nav-btn.active{color:var(--bk);border-bottom-color:var(--bk);}
+.theme-toggle{
+  margin-left:auto;flex-shrink:0;
+  display:flex;align-items:center;gap:5px;
+  padding:5px 11px;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.65rem;letter-spacing:0.09em;text-transform:uppercase;
+  border:1.5px solid var(--bk-lt);background:transparent;
+  color:var(--txt-mid);cursor:pointer;
+  transition:border-color .12s,color .12s;
+}
+.theme-toggle:hover{border-color:var(--bk);color:var(--bk);}
+.theme-icon{font-size:0.85rem;line-height:1;}
+.user-chip{
+  margin-left:10px;display:flex;align-items:center;gap:7px;
+  font-family:'Barlow Condensed',sans-serif;font-weight:600;
+  font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--txt-mid);border:none;background:none;cursor:pointer;padding:4px 8px;
+}
+.user-chip:hover{color:var(--bk);}
+.user-dot{width:7px;height:7px;border-radius:50%;background:var(--bk);display:inline-block;}
+
+/* ── PAGE ── */
+.page{
+  max-width:1160px;margin:0 auto;
+  padding:36px max(16px,env(safe-area-inset-left,0px)) 80px;
+}
+
+/* ── SECTION HEADER ── */
+.sec-head{
+  display:flex;align-items:baseline;gap:20px;
+  border-bottom:2px solid var(--bk);
+  padding-bottom:14px;margin-bottom:28px;
+}
+.sec-title{
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:800;font-size:clamp(1.75rem,4vw,2.75rem);
+  text-transform:uppercase;letter-spacing:-0.02em;line-height:1;
+}
+.sec-sub{font-size:0.8rem;color:var(--txt-mid);}
+
+/* ── DATE RANGE FILTER ── */
+.date-filter{
+  display:flex;align-items:center;gap:6px;
+  margin-bottom:24px;flex-wrap:wrap;
+}
+.df-preset{
+  padding:5px 13px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:0.68rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  border:1.5px solid var(--bk-lt);background:transparent;
+  color:var(--txt-mid);cursor:pointer;
+  transition:all .12s;
+}
+.df-preset:hover{border-color:var(--bk);color:var(--bk);}
+.df-preset.active{background:var(--bk);border-color:var(--bk);color:var(--bg);}
+.df-sep{
+  font-size:0.7rem;color:var(--txt-soft);
+  margin:0 4px;
+}
+.df-date{
+  padding:5px 10px;
+  border:1.5px solid var(--bk-lt);background:var(--bg);
+  font-family:'Space Mono',monospace;font-size:0.72rem;
+  color:var(--txt);outline:none;
+  transition:border-color .12s;
+}
+.df-date:focus{border-color:var(--bk);}
+.df-apply{
+  padding:5px 12px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:0.68rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  border:1.5px solid var(--bk);background:var(--bk);
+  color:var(--bg);cursor:pointer;
+  transition:background .12s;
+}
+.df-apply:hover{background:#333;}
+.range-label{
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:600;font-size:0.68rem;
+  letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--green);
+  padding:4px 10px;
+  border:1px solid var(--green);
+  background:var(--green-bg);
+  display:none;
+}
+.range-label.visible{display:inline-block;}
+
+/* ── STAT TILES ── */
+.stat-row{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border:2px solid var(--bk);margin-bottom:40px;
+}
+.stat-cell{padding:22px 24px;border-right:2px solid var(--bk);}
+.stat-cell:last-child{border-right:none;}
+.stat-num{
+  font-family:'Space Mono',monospace;
+  font-size:clamp(2rem,4vw,3.25rem);
+  font-weight:400;line-height:1;
+  margin-bottom:6px;letter-spacing:-0.02em;
+}
+.stat-lbl{
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:0.65rem;
+  letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--txt-soft);
+}
+
+/* ── MINI HEADER ── */
+.mini-head{
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:0.65rem;
+  letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--txt-soft);
+  border-bottom:1px solid var(--bk-lt);
+  padding-bottom:8px;margin-bottom:16px;
+}
+
+/* ── TABLES ── */
+.dt{width:100%;border-collapse:collapse;font-size:0.85rem;}
+.dt th{
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--txt-soft);text-align:left;padding:7px 10px;
+  border-bottom:1px solid var(--bk);
+}
+.dt td{padding:9px 10px;border-bottom:1px solid var(--bk-lt);vertical-align:top;}
+.dt tr:last-child td{border-bottom:none;}
+.dt tr:hover td{background:var(--panel);}
+.dt tr.clickable{cursor:pointer;}
+.dt td.mono{font-family:'Space Mono',monospace;font-size:0.72rem;}
+
+/* ── BADGES ── */
+.badge{
+  display:inline-block;
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;
+  font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;
+  padding:2px 8px;border:1.5px solid currentColor;
+  white-space:nowrap;line-height:1.6;
+}
+.b-approve{color:var(--green);}
+.b-reject{color:var(--red);}
+.b-review{color:var(--amber);}
+.b-filled.b-approve{background:var(--green-bg);}
+.b-filled.b-reject{background:var(--red-bg);}
+.b-filled.b-review{background:var(--amber-bg);}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 20px;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.8rem;letter-spacing:0.1em;text-transform:uppercase;
+  border:2px solid var(--bk);background:transparent;
+  color:var(--bk);cursor:pointer;
+  transition:background .12s,color .12s;line-height:1;
+}
+.btn:hover:not(:disabled){background:var(--bk);color:var(--bg);}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-solid{background:var(--bk);color:var(--bg);}
+.btn-solid:hover:not(:disabled){background:#2a2a2a;}
+.btn-sm{padding:5px 12px;font-size:0.7rem;}
+.btn-green{border-color:var(--green);color:var(--green);}
+.btn-green:hover:not(:disabled){background:var(--green);color:#fff;}
+.btn-red{border-color:var(--red);color:var(--red);}
+.btn-red:hover:not(:disabled){background:var(--red);color:#fff;}
+
+/* ── UPLOAD ZONES ── */
+.upload-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:16px;margin-bottom:28px;
+}
+.drop-zone{
+  border:2px dashed var(--bk-lt);
+  padding:36px 20px;text-align:center;cursor:pointer;
+  transition:border-color .15s,background .15s;position:relative;
+}
+.drop-zone:hover,.drop-zone.ready{
+  border-color:var(--bk);border-style:solid;background:var(--panel);
+}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+.drop-icon{
+  font-size:1.5rem;margin-bottom:14px;display:block;
+  font-weight:900;line-height:1;
+  font-family:'Space Mono',monospace;color:var(--bk-lt);transition:color .15s;
+}
+.drop-zone:hover .drop-icon,.drop-zone.ready .drop-icon{color:var(--bk);}
+.drop-label{
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;
+}
+.drop-hint{font-size:0.72rem;color:var(--txt-soft);}
+.drop-name{
+  font-size:0.72rem;font-weight:600;color:var(--txt);margin-top:10px;
+  font-family:'Space Mono',monospace;word-break:break-all;
+}
+.drop-count{
+  margin-top:6px;font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:0.65rem;letter-spacing:0.08em;
+  text-transform:uppercase;color:var(--green);
+}
+
+/* ── FILE CHIPS ── */
+.chip-list{
+  display:flex;flex-direction:column;gap:5px;
+  width:100%;margin-top:6px;
+}
+.file-chip{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 8px;
+  border:1px solid var(--bk-lt);background:var(--bg);
+  font-family:'Space Mono',monospace;font-size:0.65rem;
+  color:var(--txt);min-width:0;
+}
+.chip-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chip-rm{
+  flex-shrink:0;background:none;border:none;padding:0 2px;
+  font-size:0.75rem;color:var(--txt-soft);cursor:pointer;line-height:1;
+  transition:color .1s;
+}
+.chip-rm:hover{color:var(--red);}
+.add-more{
+  display:inline-flex;align-items:center;gap:5px;
+  margin-top:6px;padding:4px 8px;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.63rem;letter-spacing:0.08em;text-transform:uppercase;
+  border:1px dashed var(--bk-lt);background:transparent;
+  color:var(--txt-soft);cursor:pointer;
+  transition:border-color .12s,color .12s;
+}
+.add-more:hover{border-color:var(--bk);color:var(--bk);}
+
+/* ── CHECK CTA ── */
+.check-cta{display:flex;align-items:center;gap:16px;padding-top:4px;}
+.check-hint{font-size:0.75rem;color:var(--txt-mid);}
+.status-banner{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;border:2px solid var(--bk-lt);
+  background:var(--panel);font-size:0.825rem;margin-bottom:20px;
+}
+.spinner{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--bk-lt);border-top-color:var(--bk);
+  animation:spin .65s linear infinite;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── RESULT CARDS ── */
+.results-area{margin-top:32px;}
+.sum-bar{
+  display:flex;gap:16px;align-items:center;
+  margin-bottom:20px;flex-wrap:wrap;
+}
+.sum-item{
+  display:flex;align-items:center;gap:7px;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;
+}
+.pip{width:8px;height:8px;border-radius:50%;}
+.pip-approve{background:var(--green);}
+.pip-reject{background:var(--red);}
+.pip-review{background:var(--amber);}
+
+.rcard{border:2px solid var(--bk);margin-bottom:6px;overflow:hidden;}
+.rcard-head{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 18px;cursor:pointer;
+  background:var(--bg);transition:background .1s;user-select:none;
+}
+.rcard-head:hover{background:var(--panel);}
+.rcard-decision{flex-shrink:0;min-width:90px;}
+.rcard-info{flex:1;min-width:0;}
+.rcard-sup{
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1rem;
+  letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rcard-meta{font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--txt-mid);margin-top:1px;}
+.rcard-arr{color:var(--txt-soft);font-size:0.65rem;flex-shrink:0;transition:transform .18s;}
+.rcard-head.open .rcard-arr{transform:rotate(180deg);}
+.rcard-body{
+  display:none;padding:18px;
+  background:var(--panel);border-top:1px solid var(--bk-lt);
+}
+.rcard-body.open{display:block;}
+.rcard-details-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--bk-lt);
+  margin-bottom:14px;border-radius:0;
+}
+.rcard-detail-cell{display:flex;flex-direction:column;gap:3px;}
+.rcard-detail-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--txt-soft);font-weight:600;}
+.rcard-detail-val{font-size:0.8rem;color:var(--txt);word-break:break-word;}
+.rcard-section-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--txt-soft);font-weight:600;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--bk-lt);}
+.rcard-reasons-list{list-style:none;padding:0;margin:0;}
+.reason-line{
+  font-size:0.825rem;padding:5px 0 5px 14px;
+  border-left:2px solid var(--bk-lt);margin-bottom:6px;
+}
+.evidence-box{
+  margin-top:14px;padding:10px 14px;
+  border:1px solid var(--bk-lt);background:var(--bg);
+  font-family:'Space Mono',monospace;font-size:0.72rem;
+  color:var(--txt-mid);font-style:italic;line-height:1.6;
+}
+.evidence-box cite{
+  display:block;margin-top:4px;font-style:normal;
+  font-size:0.65rem;color:var(--txt-soft);
+}
+
+/* ── OVERRIDE PANEL ── */
+.override-wrap{
+  margin-top:14px;padding:14px;
+  border:2px dashed var(--bk-lt);background:var(--bg);
+}
+.override-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.override-row input{
+  flex:1;min-width:130px;padding:7px 10px;
+  border:1.5px solid var(--bk-lt);background:var(--bg);
+  font-size:0.8rem;outline:none;transition:border-color .12s;
+}
+.override-row input:focus{border-color:var(--bk);}
+.override-result{margin-top:8px;font-size:0.75rem;color:var(--green);}
+
+/* ── SESSION CARDS (history) ── */
+.sess-card{border:2px solid var(--bk);margin-bottom:8px;overflow:hidden;}
+.sess-head{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 18px;cursor:pointer;
+  background:var(--bg);transition:background .1s;user-select:none;
+}
+.sess-head:hover{background:var(--panel);}
+.sess-date{
+  font-family:'Space Mono',monospace;font-size:0.72rem;
+  color:var(--txt-mid);flex-shrink:0;
+}
+.sess-count{
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.75rem;letter-spacing:0.05em;color:var(--txt-mid);flex-shrink:0;
+}
+.sess-badges{display:flex;gap:6px;flex:1;flex-wrap:wrap;}
+.sess-arr{color:var(--txt-soft);font-size:0.65rem;flex-shrink:0;transition:transform .18s;}
+.sess-head.open .sess-arr{transform:rotate(180deg);}
+.sess-rules-btn{
+  flex-shrink:0;padding:3px 8px;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;
+  border:1px solid var(--bk-lt);background:transparent;color:var(--txt-soft);
+  cursor:pointer;transition:border-color .12s,color .12s;
+  line-height:1.6;
+}
+.sess-rules-btn:hover{border-color:var(--amber);color:var(--amber);}
+.sess-del{
+  flex-shrink:0;padding:3px 8px;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;
+  border:1px solid var(--bk-lt);background:transparent;color:var(--txt-soft);
+  cursor:pointer;transition:border-color .12s,color .12s,background .12s;
+  line-height:1.6;
+}
+.sess-del:hover{border-color:var(--red);color:var(--red);background:var(--red-bg);}
+.sess-body{
+  display:none;padding:16px;
+  background:var(--bk-xlt);border-top:1px solid var(--bk-lt);
+}
+.sess-body.open{display:block;}
+.sess-body .rcard{margin-bottom:5px;border-width:1.5px;}
+.sess-body .rcard:last-child{margin-bottom:0;}
+.sess-body .rcard-head{background:var(--bg);}
+
+/* ── HISTORY TOOLBAR ── */
+.hist-toolbar{
+  display:flex;gap:12px;align-items:center;
+  margin-bottom:20px;flex-wrap:wrap;
+}
+.search-input{
+  padding:8px 12px;border:1.5px solid var(--bk-lt);background:var(--bg);
+  font-size:0.825rem;color:var(--txt);outline:none;
+  transition:border-color .12s;flex:1;max-width:280px;
+}
+.search-input:focus{border-color:var(--bk);}
+.hist-count{
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--txt-soft);margin-left:auto;
+}
+
+/* ── AUTH ── */
+.auth-wrap{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;z-index:900;padding:0 16px;
+}
+.auth-box{width:100%;max-width:360px;border:2px solid var(--bk);padding:40px;}
+.auth-logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;
+  font-size:1.25rem;text-transform:uppercase;letter-spacing:-0.01em;margin-bottom:36px;
+}
+.auth-title{
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:2rem;
+  text-transform:uppercase;letter-spacing:-0.02em;margin-bottom:28px;line-height:1;
+}
+.fgroup{margin-bottom:14px;}
+.flabel{
+  display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--txt-mid);margin-bottom:5px;
+}
+.finput{
+  width:100%;padding:9px 12px;border:1.5px solid var(--bk-lt);
+  background:var(--bg);font-size:0.9rem;color:var(--txt);outline:none;
+  transition:border-color .12s;
+}
+.finput:focus{border-color:var(--bk);}
+.form-err{font-size:0.72rem;color:var(--red);margin-top:8px;}
+.auth-switch{margin-top:18px;font-size:0.78rem;color:var(--txt-mid);}
+.auth-switch a{color:var(--bk);font-weight:600;text-decoration:underline;cursor:pointer;}
+
+/* ── DOWNLOAD BAR ── */
+.dl-bar{
+  display:flex;gap:10px;margin-top:28px;
+  padding-top:20px;border-top:1px solid var(--bk-lt);
+}
+
+/* ── INLINE RULES (inside history session cards) ── */
+.sess-rules{margin-top:8px;border-top:1px solid var(--bk-lt);}
+.sess-rules-toggle{
+  display:flex;align-items:center;gap:7px;
+  width:100%;padding:9px 0 6px;
+  background:none;border:none;cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--txt-soft);transition:color .1s;
+}
+.sess-rules-toggle:hover{color:var(--txt);}
+.sess-rules-toggle .arr{font-size:0.55rem;transition:transform .18s;}
+.sess-rules-toggle.open .arr{transform:rotate(90deg);}
+.sess-rules-body{display:none;}
+.sess-rules-body.open{display:block;}
+.sess-rules-text{
+  font-family:'Space Mono',monospace;font-size:0.7rem;line-height:1.65;
+  white-space:pre-wrap;color:var(--txt-mid);
+  border:1px solid var(--bk-lt);padding:12px 14px;background:var(--bg);
+  max-height:300px;overflow-y:auto;
+}
+
+/* ── SETTINGS ── */
+.settings-grid{max-width:480px;}
+.settings-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 0;border-bottom:1px solid var(--bk-lt);font-size:0.875rem;
+}
+.settings-row:last-child{border-bottom:none;}
+.settings-key{font-weight:500;}
+.settings-val{font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--txt-mid);}
+
+/* ── CONFIRM MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:800;
+  background:rgba(17,17,17,0.45);
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+.modal-box{
+  background:var(--bg);border:2px solid var(--bk);
+  padding:28px 32px;max-width:360px;width:100%;
+}
+.modal-title{
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;
+  font-size:1.25rem;text-transform:uppercase;letter-spacing:-0.01em;
+  margin-bottom:10px;
+}
+.modal-msg{font-size:0.875rem;color:var(--txt-mid);margin-bottom:22px;line-height:1.5;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:72px 20px;color:var(--txt-soft);}
+.empty-hed{
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.75rem;
+  text-transform:uppercase;letter-spacing:-0.01em;
+  margin-bottom:8px;color:var(--txt-mid);
+}
+.empty-sub{font-size:0.825rem;}
+.empty-action{
+  display:inline-flex;margin-top:20px;padding:10px 20px;border:2px solid var(--bk);
+  background:transparent;color:var(--bk);
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;
+  cursor:pointer;transition:background .12s,color .12s;
+}
+.empty-action:hover{background:var(--bk);color:var(--bg);}
+
+/* ── RESP ── */
+@media(max-width:768px){
+  .topbar{padding-left:16px;padding-right:16px;}
+  .upload-grid{grid-template-columns:1fr;}
+  .stat-row{grid-template-columns:repeat(2,1fr);}
+  .stat-cell:nth-child(2){border-right:none;}
+  .stat-cell:nth-child(3){border-top:2px solid var(--bk);border-right:2px solid var(--bk);}
+  .stat-cell:nth-child(4){border-top:2px solid var(--bk);}
+  .rcard-decision{min-width:70px;}
+  .df-sep,.df-date,.df-apply{display:none;}
+}
+</style>
+
+<!-- ── AUTH ── -->
+<div id="auth-wrap" class="auth-wrap">
+  <div id="pane-login" class="auth-box">
+    <div class="auth-logo">
+      <div class="logo-mark"><span></span><span></span><span></span><span></span></div>DocCheck
+    </div>
+    <div class="auth-title">Sign in</div>
+    <div class="fgroup">
+      <label class="flabel" for="l-email">Email</label>
+      <input class="finput" id="l-email" type="email" placeholder="you@company.com" autocomplete="email">
+    </div>
+    <div class="fgroup">
+      <label class="flabel" for="l-pw">Password</label>
+      <input class="finput" id="l-pw" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div id="l-err" class="form-err" hidden></div>
+    <button class="btn btn-solid" style="width:100%;margin-top:8px;justify-content:center" onclick="doLogin()">Sign in</button>
+    <div class="auth-switch">No account? <a onclick="showAuth('register')">Create one →</a></div>
+  </div>
+  <div id="pane-register" class="auth-box" hidden>
+    <div class="auth-logo">
+      <div class="logo-mark"><span></span><span></span><span></span><span></span></div>DocCheck
+    </div>
+    <div class="auth-title">Create account</div>
+    <div class="fgroup">
+      <label class="flabel" for="r-name">Name</label>
+      <input class="finput" id="r-name" type="text" placeholder="Your name" autocomplete="name">
+    </div>
+    <div class="fgroup">
+      <label class="flabel" for="r-email">Work email</label>
+      <input class="finput" id="r-email" type="email" placeholder="you@company.com" autocomplete="email">
+    </div>
+    <div class="fgroup">
+      <label class="flabel" for="r-pw">Password</label>
+      <input class="finput" id="r-pw" type="password" placeholder="Min 6 characters" autocomplete="new-password">
+    </div>
+    <div id="r-err" class="form-err" hidden></div>
+    <button class="btn btn-solid" style="width:100%;margin-top:8px;justify-content:center" onclick="doRegister()">Create account</button>
+    <div class="auth-switch">Already have an account? <a onclick="showAuth('login')">Sign in →</a></div>
+  </div>
+</div>
+
+<!-- ── APP SHELL ── -->
+<div id="app-wrap" hidden>
+
+  <nav class="topbar">
+    <div class="logo">
+      <div class="logo-mark"><span></span><span></span><span></span><span></span></div>
+      DocCheck
+    </div>
+    <div class="nav">
+      <button class="nav-btn active" onclick="showView('dashboard')" data-view="dashboard">Dashboard</button>
+      <button class="nav-btn" onclick="showView('checker')" data-view="checker">Check Documents</button>
+      <button class="nav-btn" onclick="showView('history')" data-view="history">History</button>
+    </div>
+    <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark / light mode">
+      <span class="theme-icon" id="theme-icon">☾</span>
+      <span id="theme-label">Dark</span>
+    </button>
+    <button class="user-chip" onclick="showView('settings')">
+      <span class="user-dot"></span>
+      <span id="user-label">—</span>
+    </button>
+  </nav>
+
+  <!-- ── DASHBOARD ── -->
+  <div id="v-dashboard" class="page">
+    <div class="sec-head">
+      <span class="sec-title">Dashboard</span>
+      <span class="sec-sub" id="dash-sub">Your compliance overview</span>
+    </div>
+
+    <!-- Date range filter -->
+    <div class="date-filter">
+      <button class="df-preset active" data-dr="all"   onclick="setDRange('all')">All time</button>
+      <button class="df-preset"        data-dr="today" onclick="setDRange('today')">Today</button>
+      <button class="df-preset"        data-dr="7d"    onclick="setDRange('7d')">Last 7 days</button>
+      <button class="df-preset"        data-dr="30d"   onclick="setDRange('30d')">Last 30 days</button>
+      <span class="df-sep">or</span>
+      <input type="date" class="df-date" id="d-from" title="From date">
+      <span style="color:var(--txt-soft);font-size:0.72rem">→</span>
+      <input type="date" class="df-date" id="d-to" title="To date">
+      <button class="df-apply" onclick="setDRange('custom')">Apply</button>
+      <span class="range-label" id="d-range-lbl"></span>
+    </div>
+
+    <!-- Stat tiles -->
+    <div class="stat-row">
+      <div class="stat-cell">
+        <div class="stat-num" id="stat-total">0</div>
+        <div class="stat-lbl">Total checks</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num" style="color:var(--green)" id="stat-approve">0</div>
+        <div class="stat-lbl">Approved</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num" style="color:var(--red)" id="stat-reject">0</div>
+        <div class="stat-lbl">Rejected</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num" style="color:var(--amber)" id="stat-review">0</div>
+        <div class="stat-lbl">Needs person's review</div>
+      </div>
+    </div>
+
+    <div class="mini-head">Recent check sessions</div>
+    <div id="dash-recent"></div>
+  </div>
+
+  <!-- ── CHECKER ── -->
+  <div id="v-checker" class="page" hidden>
+    <div class="sec-head">
+      <span class="sec-title">Check Documents</span>
+      <span class="sec-sub">Upload supplier PDFs, purchase request, and rules</span>
+    </div>
+
+    <div class="upload-grid">
+      <!-- PDFs -->
+      <div class="drop-zone" id="dz-pdfs">
+        <input type="file" id="fi-pdfs" accept=".pdf,.zip" multiple
+               onchange="onFilePick('pdfs',this.files)" hidden>
+        <span class="drop-icon" id="dz-pdfs-icon">↑</span>
+        <div class="drop-label">Supplier PDFs</div>
+        <div class="drop-hint" id="dz-pdfs-hint">PDF or ZIP · multiple files</div>
+        <div class="chip-list" id="dz-pdfs-chips"></div>
+        <button class="add-more" id="dz-pdfs-add" hidden
+                onclick="document.getElementById('fi-pdfs').click()">+ Add more files</button>
+      </div>
+      <!-- Purchase Request -->
+      <div class="drop-zone" id="dz-pr">
+        <input type="file" id="fi-pr" accept=".csv"
+               onchange="onFilePick('pr',this.files)" hidden>
+        <span class="drop-icon" id="dz-pr-icon">↑</span>
+        <div class="drop-label">Purchase Request</div>
+        <div class="drop-hint" id="dz-pr-hint">CSV file</div>
+        <div class="chip-list" id="dz-pr-chips"></div>
+      </div>
+      <!-- Company Rules -->
+      <div class="drop-zone" id="dz-rules">
+        <input type="file" id="fi-rules" accept=".md,.txt"
+               onchange="onFilePick('rules',this.files)" hidden>
+        <span class="drop-icon" id="dz-rules-icon">↑</span>
+        <div class="drop-label">Company Rules</div>
+        <div class="drop-hint" id="dz-rules-hint">Markdown file</div>
+        <div class="chip-list" id="dz-rules-chips"></div>
+      </div>
+    </div>
+
+    <div class="check-cta">
+      <button class="btn btn-solid" id="check-btn" onclick="runCheck()" disabled>
+        Run Compliance Check →
+      </button>
+      <button class="btn" id="new-check-btn" onclick="resetCheck()" hidden>
+        ↺ New Check
+      </button>
+      <span class="check-hint" id="check-hint">Upload all three files to continue</span>
+    </div>
+
+    <div id="check-status" hidden class="status-banner" style="margin-top:20px">
+      <span class="spinner"></span>
+      <span id="check-status-txt">Analysing documents…</span>
+    </div>
+
+    <div id="results-area" class="results-area" hidden></div>
+  </div>
+
+  <!-- ── HISTORY ── -->
+  <div id="v-history" class="page" hidden>
+    <div class="sec-head">
+      <span class="sec-title">History</span>
+      <span class="sec-sub">All past compliance checks — full results</span>
+    </div>
+
+    <!-- Date range filter for history -->
+    <div class="date-filter">
+      <button class="df-preset active" data-hr="all"   onclick="setHRange('all')">All time</button>
+      <button class="df-preset"        data-hr="today" onclick="setHRange('today')">Today</button>
+      <button class="df-preset"        data-hr="7d"    onclick="setHRange('7d')">Last 7 days</button>
+      <button class="df-preset"        data-hr="30d"   onclick="setHRange('30d')">Last 30 days</button>
+      <span class="df-sep">or</span>
+      <input type="date" class="df-date" id="h-from" title="From date">
+      <span style="color:var(--txt-soft);font-size:0.72rem">→</span>
+      <input type="date" class="df-date" id="h-to" title="To date">
+      <button class="df-apply" onclick="setHRange('custom')">Apply</button>
+      <span class="range-label" id="h-range-lbl"></span>
+    </div>
+
+    <div class="hist-toolbar">
+      <input class="search-input" id="hist-search" placeholder="Search supplier, item, decision, file…"
+             oninput="renderHistory()">
+      <span class="hist-count" id="hist-count"></span>
+      <button class="btn btn-sm" onclick="clearHistory()">Clear all</button>
+    </div>
+
+    <div id="hist-wrap"></div>
+  </div>
+
+  <!-- ── SETTINGS ── -->
+  <div id="v-settings" class="page" hidden>
+    <div class="sec-head"><span class="sec-title">Settings</span></div>
+    <div class="settings-grid">
+      <div class="settings-row">
+        <span class="settings-key">Signed in as</span>
+        <span class="settings-val" id="settings-email">—</span>
+      </div>
+      <div class="settings-row">
+        <span class="settings-key">Pipeline version</span><span class="settings-val">1.0.0</span>
+      </div>
+      <div class="settings-row">
+        <span class="settings-key">Rules source</span><span class="settings-val">rules_config.json</span>
+      </div>
+      <div class="settings-row">
+        <span class="settings-key">Storage</span><span class="settings-val">Browser (localStorage)</span>
+      </div>
+      <div class="settings-row" style="border-bottom:none;padding-top:28px;">
+        <button class="btn btn-sm" onclick="doLogout()">Sign out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RULES MODAL ── -->
+  <div id="rules-modal-overlay" class="modal-overlay" hidden onclick="$('rules-modal-overlay').hidden=true">
+    <div class="modal-box" style="max-width:640px;width:100%;padding:24px 28px" onclick="event.stopPropagation()">
+      <div class="modal-title" style="margin-bottom:4px">Rules file</div>
+      <div class="modal-msg" id="rules-modal-fname" style="margin-bottom:12px;font-family:'Space Mono',monospace;font-size:0.78rem"></div>
+      <pre class="sess-rules-text" id="rules-modal-text" style="max-height:55vh;overflow-y:auto;margin-bottom:20px"></pre>
+      <div class="modal-actions">
+        <button class="btn btn-sm" id="rules-modal-dl-btn">⬇ Download .md</button>
+        <button class="btn btn-sm btn-solid" onclick="$('rules-modal-overlay').hidden=true">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CONFIRM MODAL ── -->
+  <div id="modal-overlay" class="modal-overlay" hidden onclick="modalCancel()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title" id="modal-title">Are you sure?</div>
+      <div class="modal-msg" id="modal-msg"></div>
+      <div class="modal-actions">
+        <button class="btn btn-sm" onclick="modalCancel()">Cancel</button>
+        <button class="btn btn-sm btn-solid" id="modal-confirm-btn" onclick="modalConfirm()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const NS = 'dckyy_';
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function $(id){ return document.getElementById(id); }
+
+/* ── THEME ── */
+function initTheme(){
+  const saved = localStorage.getItem(NS+'theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  _applyThemeBtn(saved);
+}
+function toggleTheme(){
+  const cur  = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem(NS+'theme', next);
+  _applyThemeBtn(next);
+}
+function _applyThemeBtn(theme){
+  const icon  = $('theme-icon');
+  const label = $('theme-label');
+  if(!icon) return;
+  if(theme === 'dark'){ icon.textContent='☀'; label.textContent='Light'; }
+  else                { icon.textContent='☾'; label.textContent='Dark';  }
+}
+/* apply theme immediately so there's no flash */
+(()=>{ const t=localStorage.getItem(NS+'theme')||'light'; document.documentElement.setAttribute('data-theme',t); })();
+
+/* ── IN-PAGE CONFIRM MODAL ── */
+let _modalCb = null;
+function showModal(title, msg, confirmLabel, cb){
+  $('modal-title').textContent = title;
+  $('modal-msg').textContent   = msg;
+  $('modal-confirm-btn').textContent = confirmLabel || 'Confirm';
+  _modalCb = cb;
+  $('modal-overlay').hidden = false;
+}
+function modalConfirm(){ $('modal-overlay').hidden=true; if(_modalCb){ _modalCb(); _modalCb=null; } }
+function modalCancel() { $('modal-overlay').hidden=true; _modalCb=null; }
+
+/* ── AUTH ── */
+function getSession()       { return localStorage.getItem(NS+'session'); }
+function setSession(e)      { localStorage.setItem(NS+'session', e); }
+function clearSession()     { localStorage.removeItem(NS+'session'); }
+function getUsers()         { try{ return JSON.parse(localStorage.getItem(NS+'users')||'{}'); }catch(e){ return {}; } }
+function saveUser(e,pw,nm)  { const u=getUsers(); u[e]={pw,name:nm||e}; localStorage.setItem(NS+'users',JSON.stringify(u)); }
+function checkUser(e,pw)    { const u=getUsers(); return u[e]&&u[e].pw===pw; }
+function getUserName(e)     { const u=getUsers(); return (u[e]&&u[e].name)||e; }
+
+function showAuth(pane){
+  $('pane-login').hidden    = pane!=='login';
+  $('pane-register').hidden = pane!=='register';
+  $('l-err').hidden = $('r-err').hidden = true;
+}
+function showErr(id,msg){ const el=$(id); el.textContent=msg; el.hidden=false; }
+
+function doLogin(){
+  const e=($('l-email').value||'').trim().toLowerCase();
+  const pw=$('l-pw').value;
+  if(!e||!pw){ showErr('l-err','Enter email and password.'); return; }
+  if(!checkUser(e,pw)){ showErr('l-err','Incorrect email or password.'); return; }
+  setSession(e); bootApp();
+}
+function doRegister(){
+  const nm=($('r-name').value||'').trim();
+  const e=($('r-email').value||'').trim().toLowerCase();
+  const pw=$('r-pw').value;
+  if(!e||!pw){ showErr('r-err','Enter email and password.'); return; }
+  if(pw.length<6){ showErr('r-err','Password must be at least 6 characters.'); return; }
+  if(getUsers()[e]){ showErr('r-err','An account with this email already exists.'); return; }
+  saveUser(e,pw,nm); setSession(e); bootApp();
+}
+function doLogout(){
+  clearSession();
+  $('app-wrap').hidden=true;
+  $('auth-wrap').hidden=false;
+  showAuth('login');
+  $('l-email').value=$('l-pw').value='';
+}
+
+function bootApp(){
+  const email=getSession();
+  if(!email){ $('auth-wrap').hidden=false; $('app-wrap').hidden=true; showAuth('login'); return; }
+  $('auth-wrap').hidden=true; $('app-wrap').hidden=false;
+  initTheme();
+  const name=getUserName(email);
+  const first=name.split(' ')[0]||email.split('@')[0];
+  $('user-label').textContent=first;
+  $('settings-email').textContent=email;
+  $('dash-sub').textContent='Welcome back, '+first;
+  refreshStats(); showView('dashboard');
+}
+
+/* ── VIEWS ── */
+function showView(name){
+  ['dashboard','checker','history','settings'].forEach(v => $('v-'+v).hidden=v!==name);
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active',b.dataset.view===name));
+  if(name==='history') renderHistory();
+}
+
+/* ── DATE RANGE ── */
+const dState = { dash:'all', hist:'all' };
+
+function getRangeDates(preset, fromId, toId){
+  const now  = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  switch(preset){
+    case 'today':  return { from: today, to: new Date(today.getTime()+86400000) };
+    case '7d':     return { from: new Date(today.getTime()-7*86400000), to: null };
+    case '30d':    return { from: new Date(today.getTime()-30*86400000), to: null };
+    case 'custom': {
+      const fv = $(fromId)?.value;
+      const tv = $(toId)?.value;
+      return { from: fv?new Date(fv):null, to: tv?new Date(new Date(tv).getTime()+86400000):null };
+    }
+    default: return { from:null, to:null };
+  }
+}
+
+function filterByRange(hist, preset, fromId, toId){
+  const r = getRangeDates(preset, fromId, toId);
+  if(!r.from && !r.to) return hist;
+  return hist.filter(h => {
+    const d = new Date(h.date);
+    if(r.from && d < r.from) return false;
+    if(r.to   && d >= r.to)  return false;
+    return true;
+  });
+}
+
+function formatRangeLabel(preset, fromId, toId){
+  const r = getRangeDates(preset, fromId, toId);
+  if(!r.from && !r.to) return '';
+  const fmt = d => d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  if(preset==='today') return 'Today';
+  if(preset==='7d')    return 'Last 7 days';
+  if(preset==='30d')   return 'Last 30 days';
+  return (r.from?fmt(r.from):'—')+' → '+(r.to?fmt(new Date(r.to.getTime()-1)):' now');
+}
+
+function setDRange(preset){
+  dState.dash = preset;
+  document.querySelectorAll('[data-dr]').forEach(b => b.classList.toggle('active', b.dataset.dr===preset));
+  const lbl = formatRangeLabel(preset,'d-from','d-to');
+  const el = $('d-range-lbl');
+  el.textContent = lbl;
+  el.classList.toggle('visible', !!lbl && preset!=='all');
+  refreshStats();
+}
+
+function setHRange(preset){
+  dState.hist = preset;
+  document.querySelectorAll('[data-hr]').forEach(b => b.classList.toggle('active', b.dataset.hr===preset));
+  const lbl = formatRangeLabel(preset,'h-from','h-to');
+  const el = $('h-range-lbl');
+  el.textContent = lbl;
+  el.classList.toggle('visible', !!lbl && preset!=='all');
+  renderHistory();
+}
+
+/* ── HISTORY DATA ── */
+function getHistory(){
+  const email = getSession();
+  try{ return JSON.parse(localStorage.getItem(NS+'history')||'[]').filter(h=>h.email===email); }
+  catch(_){ return []; }
+}
+function saveCheck(data){
+  const email = getSession();
+  const all   = JSON.parse(localStorage.getItem(NS+'history')||'[]');
+  all.unshift({ id:Date.now().toString(36), email, date:new Date().toISOString(), summary:data.summary, results:data.results, rules_text:data.rules_text||'', rules_name:st.rules?.name||'' });
+  localStorage.setItem(NS+'history', JSON.stringify(all.slice(0,200)));
+}
+function clearHistory(){
+  showModal('Clear all history?','This will permanently remove all check sessions for your account. This cannot be undone.','Clear all', ()=>{
+    const email=getSession();
+    const all=JSON.parse(localStorage.getItem(NS+'history')||'[]').filter(h=>h.email!==email);
+    localStorage.setItem(NS+'history',JSON.stringify(all));
+    refreshStats(); renderHistory();
+  });
+}
+function deleteSession(id){
+  showModal('Delete session?','This check session and all its results will be permanently removed. This cannot be undone.','Delete', ()=>{
+    const all=JSON.parse(localStorage.getItem(NS+'history')||'[]');
+    const idx=all.findIndex(h=>h.id===id);
+    if(idx===-1) return;
+    all.splice(idx,1);
+    localStorage.setItem(NS+'history',JSON.stringify(all));
+    const card=document.getElementById('sc-'+id);
+    if(card){ card.style.transition='opacity .18s'; card.style.opacity='0'; setTimeout(()=>{ refreshStats(); renderHistory(); },180); }
+    else { refreshStats(); renderHistory(); }
+  });
+}
+
+/* ── STORED RULES (removed — rules now stored per-session in history) ── */
+
+
+/* ── REFRESH STATS (dashboard) ── */
+function refreshStats(){
+  let hist = getHistory();
+  hist = filterByRange(hist, dState.dash, 'd-from', 'd-to');
+  let total=0,approve=0,reject=0,review=0;
+  hist.forEach(h=>{
+    total   +=(h.summary.approve||0)+(h.summary.reject||0)+(h.summary.review||0);
+    approve +=h.summary.approve||0;
+    reject  +=h.summary.reject||0;
+    review  +=h.summary.review||0;
+  });
+  $('stat-total').textContent   = total;
+  $('stat-approve').textContent = approve;
+  $('stat-reject').textContent  = reject;
+  $('stat-review').textContent  = review;
+  renderDashRecent(hist);
+}
+
+function renderDashRecent(hist){
+  const rec = $('dash-recent');
+  if(!hist.length){
+    rec.innerHTML = `<div class="empty"><div class="empty-hed">No checks in this period</div><div class="empty-sub">Upload supplier PDFs to run a compliance check.</div><button class="empty-action" onclick="showView('checker')">Check documents</button></div>`;
+    return;
+  }
+  const rows = hist.slice(0,8).map(h => {
+    const d = new Date(h.date);
+    const ds = d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    const ts = d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const a=h.summary.approve||0, r=h.summary.reject||0, n=h.summary.review||0;
+    const tot=a+r+n;
+    return `<tr class="clickable" onclick="goToSession('${h.id}')" title="Open in History">
+      <td class="mono">${ds}</td>
+      <td class="mono" style="color:var(--txt-soft)">${ts}</td>
+      <td>${tot} file${tot!==1?'s':''}</td>
+      <td>
+        ${a?`<span class="badge b-approve b-filled" style="margin-right:4px">${a} Approved</span>`:''}
+        ${r?`<span class="badge b-reject b-filled" style="margin-right:4px">${r} Rejected</span>`:''}
+        ${n?`<span class="badge b-review b-filled">${n} Needs person's review</span>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+  rec.innerHTML = `<table class="dt"><thead><tr><th>Date</th><th>Time</th><th>Files</th><th>Results</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function goToSession(id){
+  showView('history'); /* renderHistory() is called inside */
+  /* After render, scroll to the card and open it */
+  const open = () => {
+    const card = document.getElementById('sc-'+id);
+    if(!card) return;
+    const head = card.querySelector('.sess-head');
+    if(head && !head.classList.contains('open')) head.click();
+    card.scrollIntoView({behavior:'smooth', block:'start'});
+  };
+  /* renderHistory is sync, but scrollIntoView needs layout */
+  requestAnimationFrame(open);
+}
+
+/* ── RENDER HISTORY (session cards with full results) ── */
+function renderHistory(){
+  let hist = getHistory();
+  hist = filterByRange(hist, dState.hist, 'h-from', 'h-to');
+  const q  = (($('hist-search')?.value)||'').toLowerCase().trim();
+  const wrap = $('hist-wrap');
+
+  if(!hist.length){
+    $('hist-count').textContent = '';
+    wrap.innerHTML = `<div class="empty"><div class="empty-hed">No checks in this period</div><div class="empty-sub">Your completed checks will appear here.</div><button class="empty-action" onclick="showView('checker')">Run a check</button></div>`;
+    return;
+  }
+
+  // Helper: does a single result row match the query?
+  function matchResult(r){
+    return [
+      r.supplier, r.item, r.decision, r.file, r.error,
+      ...(r.reasons||[]),
+      ...(r.evidence||[])
+    ].some(v => (v||'').toLowerCase().includes(q));
+  }
+
+  // Filter sessions that contain at least one matching result
+  const sessions = q
+    ? hist.filter(h => h.results.some(matchResult))
+    : hist;
+
+  if(!sessions.length){
+    $('hist-count').textContent = '';
+    wrap.innerHTML = `<div class="empty"><div class="empty-hed">No results match</div><div class="empty-sub">Try a different search term.</div></div>`;
+    return;
+  }
+
+  const totalDocs = sessions.reduce((acc,h) => {
+    const r = q ? h.results.filter(r =>
+      (r.supplier||'').toLowerCase().includes(q)||(r.item||'').toLowerCase().includes(q)||
+      (r.decision||'').toLowerCase().includes(q)||(r.file||'').toLowerCase().includes(q)) : h.results;
+    return acc+r.length;
+  }, 0);
+  $('hist-count').textContent = sessions.length+' session'+(sessions.length!==1?'s':'')+' · '+totalDocs+' document'+(totalDocs!==1?'s':'');
+
+  const cards = sessions.map((h, si) => {
+    const d   = new Date(h.date);
+    const ds  = d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    const ts  = d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const a=h.summary.approve||0, r=h.summary.reject||0, n=h.summary.review||0;
+    const tot=a+r+n;
+
+    const matchingResults = q ? h.results.filter(matchResult) : h.results;
+    const autoOpen = q && matchingResults.length > 0;
+
+    const rCards = matchingResults.map((r,ri) => buildRCard(r, `h-${si}-${ri}`, true)).join('');
+
+    // register rules + name for modal access
+    if(h.rules_text){ sessRules[h.id]=h.rules_text; sessRuleNames[h.id]=h.rules_name||'rules.md'; }
+
+    return `<div class="sess-card" id="sc-${h.id}">
+      <div class="sess-head${autoOpen?' open':''}" onclick="toggleSess(this)">
+        <span class="sess-date">${ds} · ${ts}</span>
+        <span class="sess-count">${tot} file${tot!==1?'s':''}</span>
+        <div class="sess-badges">
+          ${a?`<span class="badge b-approve b-filled">${a} Approved</span>`:''}
+          ${r?`<span class="badge b-reject b-filled">${r} Rejected</span>`:''}
+          ${n?`<span class="badge b-review b-filled">${n} Needs person's review</span>`:''}
+        </div>
+        ${h.rules_text ? `<button class="sess-rules-btn" onclick="event.stopPropagation();showRulesModal('${h.id}')" title="View rules used for this check">☰ ${esc(h.rules_name||'Rules')} ▾</button>` : ''}
+        <button class="sess-rules-btn" onclick="event.stopPropagation();downloadSessionPDF('${h.id}')" title="View / print results">Result</button>
+        <button class="sess-del" onclick="event.stopPropagation();deleteSession('${h.id}')" title="Delete this session">✕ Delete</button>
+        <span class="sess-arr">▼</span>
+      </div>
+      <div class="sess-body${autoOpen?' open':''}" id="sess-${si}">
+        ${rCards}
+      </div>
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML = cards;
+}
+
+function toggleSess(head){
+  head.classList.toggle('open');
+  const body = head.nextElementSibling;
+  if(body) body.classList.toggle('open');
+}
+function toggleSessRules(btn){
+  btn.classList.toggle('open');
+  btn.nextElementSibling.classList.toggle('open');
+}
+
+/* ── RULES MODAL ── */
+const sessRules     = {};
+const sessRuleNames = {};
+function showRulesModal(id){
+  const text = sessRules[id];
+  if(!text) return;
+  const fname = sessRuleNames[id] || 'rules.md';
+  $('rules-modal-text').textContent   = text;
+  $('rules-modal-fname').textContent  = fname;
+  $('rules-modal-dl-btn').onclick = () => dlRulesMD(id);
+  $('rules-modal-overlay').hidden = false;
+}
+function dlRulesMD(id){
+  const text = sessRules[id];
+  if(!text) return;
+  dlFile(sessRuleNames[id]||'rules.md', text, 'text/markdown');
+}
+
+/* ── BUILD RESULT CARD (shared helper) ── */
+function buildRCard(r, uid, readOnly){
+  const cls   = decClass(r.decision);
+  const label = decLabel(r.human_override||r.decision);
+  const reasons = (r.reasons||[]).map(x=>`<li class="reason-line">${esc(x)}</li>`).join('');
+  const evidences = (r.evidence||[]).filter(Boolean).filter(e=>!e.startsWith('(')).map(e=>
+    `<div class="evidence-box">"${esc(e)}"<cite>— ${esc(r.file)}</cite></div>`).join('');
+  let overHtml = '';
+  if(!readOnly && r.decision==='Needs a person to check' && !r.human_override){
+    overHtml = `<div class="override-wrap">
+      <span class="mini-head">Human decision required</span>
+      <div class="override-row">
+        <input id="ov-nm-${uid}" placeholder="Your name" style="font-size:0.8rem;padding:7px 10px">
+        <input id="ov-rs-${uid}" placeholder="Reason for decision" style="flex:2;font-size:0.8rem;padding:7px 10px">
+        <button class="btn btn-sm btn-green" onclick="applyOv('${uid}','Approve')">Approve</button>
+        <button class="btn btn-sm btn-red" onclick="applyOv('${uid}','Reject')">Reject</button>
+      </div>
+      <div class="override-result" id="ov-res-${uid}"></div>
+    </div>`;
+  }
+  return `<div class="rcard" id="rc-${uid}">
+    <div class="rcard-head" onclick="toggleRCard(this)">
+      <div class="rcard-decision"><span class="badge b-${cls}">${label}</span></div>
+      <div class="rcard-info">
+        <div class="rcard-sup">${esc(r.supplier||'Unknown supplier')}</div>
+        <div class="rcard-meta">Item ${esc(r.item||'?')} · ${esc(r.file||'')}</div>
+      </div>
+      <span class="rcard-arr">▼</span>
+    </div>
+    <div class="rcard-body" id="rb-${uid}">
+      <div class="rcard-details-grid">
+        <div class="rcard-detail-cell">
+          <span class="rcard-detail-label">Supplier</span>
+          <span class="rcard-detail-val">${esc(r.supplier||'—')}</span>
+        </div>
+        <div class="rcard-detail-cell">
+          <span class="rcard-detail-label">Item</span>
+          <span class="rcard-detail-val">${esc(r.item||'—')}</span>
+        </div>
+        <div class="rcard-detail-cell" style="grid-column:span 2">
+          <span class="rcard-detail-label">Description</span>
+          <span class="rcard-detail-val">${esc(r.description||'—')}</span>
+        </div>
+        <div class="rcard-detail-cell">
+          <span class="rcard-detail-label">Quantity</span>
+          <span class="rcard-detail-val">${r.quantity!=null ? Number(r.quantity).toLocaleString() : '—'}</span>
+        </div>
+        <div class="rcard-detail-cell">
+          <span class="rcard-detail-label">Unit</span>
+          <span class="rcard-detail-val">${esc(r.unit||'—')}</span>
+        </div>
+        <div class="rcard-detail-cell">
+          <span class="rcard-detail-label">Unit Price (BDT)</span>
+          <span class="rcard-detail-val">${r.unit_price!=null ? Number(r.unit_price).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</span>
+        </div>
+        <div class="rcard-detail-cell">
+          <span class="rcard-detail-label">File</span>
+          <span class="rcard-detail-val" style="font-family:'Space Mono',monospace;font-size:0.72rem">${esc(r.file||'—')}</span>
+        </div>
+        <div class="rcard-detail-cell">
+          <span class="rcard-detail-label">Decision</span>
+          <span class="rcard-detail-val"><span class="badge b-${cls}" style="font-size:0.62rem;padding:2px 7px">${label}</span></span>
+        </div>
+      </div>
+      ${reasons ? `<div class="rcard-section-label">Decision Reasons</div><ul class="rcard-reasons-list">${reasons}</ul>` : ''}
+      ${evidences ? `<div class="rcard-section-label">Evidence from Document</div>${evidences}` : ''}
+      ${r.error?`<div class="reason-line" style="color:var(--red)">${esc(r.error)}</div>`:''}
+      ${overHtml}
+    </div>
+  </div>`;
+}
+
+function toggleRCard(head){
+  head.classList.toggle('open');
+  const body = head.nextElementSibling;
+  if(body) body.classList.toggle('open');
+}
+
+function decClass(d){ if(d==='Approve') return 'approve'; if(d==='Reject') return 'reject'; return 'review'; }
+function decLabel(d){ if(d==='Approve') return 'APPROVE'; if(d==='Reject') return 'REJECT'; return "NEEDS PERSON'S REVIEW"; }
+
+/* ── RUN CHECK ── */
+const st = { pdfs:[], pr:null, rules:null };
+
+function renderDZ(){
+  // PDFs
+  const hasP = st.pdfs.length > 0;
+  $('dz-pdfs-icon').hidden  = hasP;
+  $('dz-pdfs-hint').hidden  = hasP;
+  $('dz-pdfs-add').hidden   = !hasP;
+  $('dz-pdfs').classList.toggle('ready', hasP);
+  $('dz-pdfs').onclick = hasP ? null : ()=>$('fi-pdfs').click();
+  $('dz-pdfs-chips').innerHTML = st.pdfs.map((f,i)=>
+    `<div class="file-chip">
+       <span class="chip-name">${esc(f.name)}</span>
+       <button class="chip-rm" onclick="event.stopPropagation();removeFile('pdfs',${i})" title="Remove">✕</button>
+     </div>`).join('');
+
+  // PR
+  const hasPR = !!st.pr;
+  $('dz-pr-icon').hidden = hasPR;
+  $('dz-pr-hint').hidden = hasPR;
+  $('dz-pr').classList.toggle('ready', hasPR);
+  $('dz-pr').onclick = hasPR ? null : ()=>$('fi-pr').click();
+  $('dz-pr-chips').innerHTML = hasPR
+    ? `<div class="file-chip"><span class="chip-name">${esc(st.pr.name)}</span><button class="chip-rm" onclick="event.stopPropagation();removeFile('pr')" title="Remove">✕</button></div>`
+    : '';
+
+  // Rules
+  const hasR = !!st.rules;
+  $('dz-rules-icon').hidden = hasR;
+  $('dz-rules-hint').hidden = hasR;
+  $('dz-rules').classList.toggle('ready', hasR);
+  $('dz-rules').onclick = hasR ? null : ()=>$('fi-rules').click();
+  $('dz-rules-chips').innerHTML = hasR
+    ? `<div class="file-chip"><span class="chip-name">${esc(st.rules.name)}</span><button class="chip-rm" onclick="event.stopPropagation();removeFile('rules')" title="Remove">✕</button></div>`
+    : '';
+
+  // CTA
+  const ready = st.pdfs.length>0 && st.pr && st.rules;
+  $('check-btn').disabled = !ready;
+  $('check-hint').textContent = ready
+    ? st.pdfs.length+' PDF(s), purchase request, and rules ready'
+    : 'Upload all three files to continue';
+}
+
+function removeFile(type, idx){
+  if(type==='pdfs'){
+    st.pdfs.splice(idx,1);
+    // reset input so same file can be re-added
+    $('fi-pdfs').value='';
+  } else if(type==='pr'){
+    st.pr=null; $('fi-pr').value='';
+  } else if(type==='rules'){
+    st.rules=null; $('fi-rules').value='';
+  }
+  renderDZ();
+}
+
+function onFilePick(type, files){
+  if(!files||!files.length) return;
+
+  if(type==='pdfs'){
+    const incoming  = Array.from(files);
+    const existMap  = new Map(st.pdfs.map((f,i)=>[f.name,i]));
+    const fresh     = incoming.filter(f=>!existMap.has(f.name));
+    const dupes     = incoming.filter(f=> existMap.has(f.name));
+    $('fi-pdfs').value='';
+
+    // Add non-duplicate files straight away
+    fresh.forEach(f=>st.pdfs.push(f));
+
+    if(dupes.length){
+      const list = dupes.map(f=>`"${f.name}"`).join(', ');
+      const msg  = dupes.length===1
+        ? `${list} is already added. Replace it with the new version, or cancel?`
+        : `${list} are already added. Replace them with the new versions, or cancel?`;
+      showModal('File already added', msg, 'Replace', ()=>{
+        // rebuild existMap after fresh additions
+        const idx = new Map(st.pdfs.map((f,i)=>[f.name,i]));
+        dupes.forEach(f=>{ const i=idx.get(f.name); if(i!=null) st.pdfs[i]=f; });
+        renderDZ();
+      });
+    }
+    renderDZ();
+
+  } else if(type==='pr'){
+    const f = files[0];
+    if(st.pr && st.pr.name===f.name){
+      showModal('File already added',
+        `"${f.name}" is already added as the purchase request. Replace it with the new version, or cancel?`,
+        'Replace', ()=>{ st.pr=f; $('fi-pr').value=''; renderDZ(); });
+      return;
+    }
+    st.pr=f; $('fi-pr').value='';
+    renderDZ();
+
+  } else if(type==='rules'){
+    const f = files[0];
+    if(st.rules && st.rules.name===f.name){
+      showModal('File already added',
+        `"${f.name}" is already added as the rules file. Replace it with the new version, or cancel?`,
+        'Replace', ()=>{ st.rules=f; $('fi-rules').value=''; renderDZ(); });
+      return;
+    }
+    st.rules=f; $('fi-rules').value='';
+    renderDZ();
+  }
+  setupDrag();
+}
+
+function setupDrag(){
+  [['dz-pdfs','pdfs'],['dz-pr','pr'],['dz-rules','rules']].forEach(([id,type])=>{
+    const el=$(id);
+    if(el._dr) return; el._dr=true;
+    el.addEventListener('dragover',e=>{e.preventDefault();el.style.borderColor='var(--bk)';});
+    el.addEventListener('dragleave',()=>{el.style.borderColor='';});
+    el.addEventListener('drop',e=>{e.preventDefault();el.style.borderColor='';if(e.dataTransfer.files.length) onFilePick(type,e.dataTransfer.files);});
+  });
+}
+document.addEventListener('DOMContentLoaded', ()=>{ setupDrag(); renderDZ(); });
+
+async function runCheck(){
+  $('check-btn').disabled=true;
+  $('check-status').hidden=false;
+  $('results-area').hidden=true;
+  $('check-status-txt').textContent='Uploading files…';
+  const fd=new FormData();
+  st.pdfs.forEach(f=>fd.append('pdfs',f));
+  fd.append('pr',st.pr);
+  fd.append('rules',st.rules);
+  try{
+    $('check-status-txt').textContent='Analysing '+st.pdfs.length+' document(s)…';
+    const res=await fetch('/check',{method:'POST',body:fd});
+    if(!res.ok){ let d='Server error '+res.status; try{d=(await res.json()).detail||d;}catch(_){} throw new Error(d); }
+    const data=await res.json();
+    $('check-status').hidden=true;
+    renderResults(data);
+    saveCheck(data);
+    refreshStats();
+  }catch(err){
+    $('check-status').hidden=true;
+    $('results-area').hidden=false;
+    $('results-area').innerHTML=`<div class="status-banner" style="border-color:var(--red)"><span style="color:var(--red);font-size:1.1rem">✕</span><span>${esc(err.message)}</span></div>`;
+  }
+  $('check-btn').disabled=false;
+}
+
+function resetCheck(){
+  st.pdfs=[]; st.pr=null; st.rules=null;
+  $('results-area').hidden=true;
+  $('results-area').innerHTML='';
+  $('new-check-btn').hidden=true;
+  window._lastData=null;
+  renderDZ();
+}
+
+function renderResults(data){
+  const area=$('results-area');
+  area.hidden=false;
+  $('new-check-btn').hidden=false;
+  const s=data.summary;
+  const sumHtml=[
+    s.approve?`<span class="sum-item"><span class="pip pip-approve"></span>${s.approve} Approved</span>`:'',
+    s.reject ?`<span class="sum-item"><span class="pip pip-reject"></span>${s.reject} Rejected</span>`:'',
+    s.review ?`<span class="sum-item"><span class="pip pip-review"></span>${s.review} Needs person's review</span>`:''
+  ].filter(Boolean).join('<span style="color:var(--bk-lt);margin:0 4px">·</span>');
+
+  const cards = data.results.map((r,i) => buildRCard(r,'r'+i,false)).join('');
+  area.innerHTML=`
+    <div class="sec-head" style="margin-top:0">
+      <span class="sec-title">Results</span>
+      <span class="sec-sub">${data.results.length} document${data.results.length!==1?'s':''}</span>
+    </div>
+    <div class="sum-bar">${sumHtml}</div>
+    ${cards}
+    <div class="dl-bar">
+      <button class="btn btn-sm" onclick="dlReport()">⬇ Download Result</button>
+      <button class="btn btn-sm" onclick="dlJSON()">Download results.json</button>
+    </div>`;
+  window._lastData=data;
+}
+
+function applyOv(uid, dec){
+  const nm=($('ov-nm-'+uid)||{}).value||'';
+  const rs=($('ov-rs-'+uid)||{}).value||'';
+  if(!nm||!rs){ $('ov-res-'+uid).textContent='Enter your name and reason.'; return; }
+  const idx=uid.startsWith('r')?parseInt(uid.slice(1)):null;
+  if(idx!==null&&window._lastData?.results[idx]) window._lastData.results[idx].human_override=dec;
+  fetch('/override',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({index:idx,decision:dec,reviewer:nm,reason:rs})}).catch(()=>{});
+  const card=$('rc-'+uid);
+  if(card){ const badge=card.querySelector('.badge'); const cls=decClass(dec); badge.className=`badge b-${cls}`; badge.textContent=dec==='Approve'?'APPROVE':'REJECT'; }
+  $('ov-res-'+uid).textContent=`✓ Marked ${dec} by ${nm}`;
+}
+
+/* ── DOWNLOADS ── */
+function dlFile(name,content,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click(); }
+function dlJSON(){ if(window._lastData) dlFile('results.json',JSON.stringify(window._lastData,null,2),'application/json'); }
+
+function _printHTML(html){
+  /* In-page overlay — no popup permission needed */
+  const prev = document.getElementById('_report-overlay');
+  if(prev) prev.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = '_report-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:900;background:#fff;display:flex;flex-direction:column;';
+
+  overlay.innerHTML = `
+    <div style="background:var(--bk);color:var(--bg);padding:11px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0;font-family:\'Barlow Condensed\',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;">
+      <span>Report Preview</span>
+      <button onclick="document.getElementById('_print-frame').contentWindow.print()"
+        style="margin-left:auto;padding:6px 14px;background:var(--bg);color:var(--bk);border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;">
+        Print / Save as PDF
+      </button>
+      <button onclick="document.getElementById('_report-overlay').remove()"
+        style="padding:6px 14px;background:transparent;color:var(--bg);border:1.5px solid rgba(255,255,255,.35);cursor:pointer;font-family:inherit;font-weight:700;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;">
+        ✕ Close
+      </button>
+    </div>
+    <iframe id="_print-frame" style="flex:1;border:none;background:#fff;"></iframe>`;
+
+  document.body.appendChild(overlay);
+
+  const frame = document.getElementById('_print-frame');
+  const doc = frame.contentDocument || frame.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+}
+
+function buildResultsPrintHTML(results, summary, rulesName, dateStr){
+  const ep=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const decColor=d=>d==='Approve'?'#0D6B39':d==='Reject'?'#A61A1A':'#885200';
+  const decBg   =d=>d==='Approve'?'#EDF7F2':d==='Reject'?'#FDF2F2':'#FDF7ED';
+  const decLbl  =d=>d==='Approve'?'APPROVE':d==='Reject'?'REJECT':'NEEDS REVIEW';
+  const a=summary.approve||0, rj=summary.reject||0, rv=summary.review||0;
+
+  /* Overview table rows */
+  const ovRows=results.map((r,i)=>{
+    const dec=r.human_override||r.decision;
+    return `<tr>
+      <td style="color:#999;font-family:monospace;font-size:0.72rem">${String(i+1).padStart(2,'0')}</td>
+      <td style="font-weight:600">${ep(r.supplier||'—')}</td>
+      <td>${ep(r.item||'—')}</td>
+      <td style="font-family:monospace;font-size:0.7rem;color:#666">${ep(r.file||'—')}</td>
+      <td><span style="display:inline-block;padding:3px 8px;background:${decBg(dec)};color:${decColor(dec)};font-weight:700;font-size:0.68rem;letter-spacing:.04em">${decLbl(dec)}</span></td>
+    </tr>`;
+  }).join('');
+
+  /* Detail sections */
+  const details=results.map((r,i)=>{
+    const dec=r.human_override||r.decision;
+    const rsns=(r.reasons||[]).map(x=>`<li>${ep(x)}</li>`).join('');
+    const evs=(r.evidence||[]).filter(e=>e&&!e.startsWith('(')).map(e=>`<blockquote>${ep(e)}</blockquote>`).join('');
+    return `<div class="detail">
+      <div class="dh">
+        <span class="dnum">${String(i+1).padStart(2,'0')}</span>
+        <span class="dsup">${ep(r.supplier||r.file)}</span>
+        <span class="ditm">Item ${ep(r.item||'?')}</span>
+        <span class="ddec" style="background:${decBg(dec)};color:${decColor(dec)}">${decLbl(dec)}</span>
+      </div>
+      <table class="dinfo"><tbody>
+        <tr><td class="dk">File</td><td class="dv" style="font-family:monospace;font-size:0.72rem">${ep(r.file||'—')}</td></tr>
+        <tr><td class="dk">Supplier</td><td class="dv">${ep(r.supplier||'—')}</td></tr>
+        <tr><td class="dk">Item</td><td class="dv">${ep(r.item||'—')}</td></tr>
+        <tr><td class="dk">Decision</td><td class="dv" style="font-weight:700;color:${decColor(dec)}">${ep(dec)}</td></tr>
+      </tbody></table>
+      ${rsns?`<div class="slabel">Decision Reasons</div><ul class="rsns">${rsns}</ul>`:''}
+      ${evs?`<div class="slabel">Evidence from Document</div>${evs}`:''}
+    </div>`;
+  }).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>DocCheck Report</title><style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',system-ui,sans-serif;max-width:900px;margin:0 auto;padding:40px 32px;color:#111;font-size:14px;line-height:1.5}
+    h1{font-size:1.4rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:4px}
+    .meta{color:#777;font-size:0.76rem;margin-bottom:28px}
+    /* summary */
+    .sum-tbl{width:100%;border-collapse:collapse;margin-bottom:32px}
+    .sum-tbl td{padding:16px 20px;text-align:center;border:2px solid #111;vertical-align:top}
+    .snum{font-size:2rem;font-weight:800;line-height:1}
+    .slbl{font-size:0.62rem;text-transform:uppercase;letter-spacing:.07em;color:#777;margin-top:4px}
+    /* overview table */
+    .sec-lbl{font-size:0.62rem;text-transform:uppercase;letter-spacing:.07em;color:#777;font-weight:700;margin-bottom:0;padding-bottom:5px;border-bottom:2px solid #111}
+    .ov-tbl{width:100%;border-collapse:collapse;margin-bottom:36px;font-size:0.84rem}
+    .ov-tbl th{text-align:left;font-size:0.62rem;text-transform:uppercase;letter-spacing:.06em;color:#777;padding:8px 10px;border-bottom:1.5px solid #ccc}
+    .ov-tbl td{padding:9px 10px;border-bottom:1px solid #eee;vertical-align:middle}
+    /* detail */
+    .detail{border-top:2px solid #ddd;padding:20px 0;page-break-inside:avoid}
+    .detail:first-of-type{border-top:2px solid #111}
+    .dh{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+    .dnum{font-size:0.68rem;color:#bbb;font-family:monospace;min-width:22px}
+    .dsup{font-weight:700;font-size:1rem}
+    .ditm{font-size:0.8rem;color:#777}
+    .ddec{margin-left:auto;font-size:0.68rem;font-weight:700;padding:3px 9px;text-transform:uppercase;letter-spacing:.04em}
+    .dinfo{border-collapse:collapse;margin-bottom:14px;font-size:0.82rem}
+    .dk{color:#888;font-weight:600;padding:3px 18px 3px 0;vertical-align:top;white-space:nowrap}
+    .dv{padding:3px 0;color:#222}
+    .slabel{font-size:0.6rem;text-transform:uppercase;letter-spacing:.07em;color:#777;font-weight:700;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid #eee}
+    .rsns{padding-left:16px;margin:0}
+    .rsns li{font-size:0.84rem;padding:3px 0;color:#333}
+    blockquote{margin:7px 0;padding:8px 14px;border-left:3px solid #111;font-style:italic;font-size:0.81rem;color:#555;background:#f8f8f6}
+    @media print{body{padding:20px} @page{margin:1.5cm}}
+  </style></head><body>
+    <h1>Compliance Check Report</h1>
+    <div class="meta">Generated: ${ep(dateStr)}&nbsp;&nbsp;·&nbsp;&nbsp;Rules: ${ep(rulesName)}</div>
+    <table class="sum-tbl">
+      <tr>
+        <td><div class="snum" style="color:#0D6B39">${a}</div><div class="slbl">Approved</div></td>
+        <td><div class="snum" style="color:#A61A1A">${rj}</div><div class="slbl">Rejected</div></td>
+        <td><div class="snum" style="color:#885200">${rv}</div><div class="slbl">Needs Review</div></td>
+        <td><div class="snum">${a+rj+rv}</div><div class="slbl">Total Files</div></td>
+      </tr>
+    </table>
+    <div class="sec-lbl">Overview</div>
+    <table class="ov-tbl">
+      <thead><tr><th>#</th><th>Supplier</th><th>Item</th><th>File</th><th>Decision</th></tr></thead>
+      <tbody>${ovRows}</tbody>
+    </table>
+    <div class="sec-lbl">Detailed Results</div>
+    ${details}
+  </body></html>`;
+}
+
+function dlReport(){
+  if(!window._lastData) return;
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  const rulesName=st.rules?.name||'Company rules';
+  _printHTML(buildResultsPrintHTML(window._lastData.results, window._lastData.summary||{}, rulesName, dateStr));
+}
+
+function downloadSessionPDF(id){
+  const all=JSON.parse(localStorage.getItem(NS+'history')||'[]');
+  const h=all.find(x=>x.id===id);
+  if(!h) return;
+  const d=new Date(h.date);
+  const dateStr=d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  _printHTML(buildResultsPrintHTML(h.results, h.summary||{}, h.rules_name||'Company rules', dateStr));
+}
+
+/* ── BOOT ── */
+bootApp();
+</script>

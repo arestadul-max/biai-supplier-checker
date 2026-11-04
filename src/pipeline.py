@@ -288,8 +288,11 @@ def run_pipeline(
 
         # Pull supplier name and item from the extracted data (if available)
         q: ExtractedQuote = final.get("extracted")
-        supplier = (q.supplier_name.parsed if q and q.supplier_name else "Unknown")
-        item_letter = (q.item_letter.parsed if q and q.item_letter else "?")
+        supplier    = (q.supplier_name.parsed if q and q.supplier_name else "Unknown")
+        item_letter = (q.item_letter.parsed   if q and q.item_letter  else "?")
+
+        def _val(fld):
+            return fld.parsed if fld and not fld.is_ambiguous else None
 
         return DocumentResult(
             pdf_filename=filename,
@@ -300,6 +303,10 @@ def run_pipeline(
             evidence=final["evidence"],
             rule_results=final["rule_results"],
             error=final.get("error"),
+            description=_val(q.description)  if q else None,
+            quantity    =_val(q.quantity)     if q else None,
+            unit        =_val(q.unit)         if q else None,
+            unit_price  =_val(q.unit_price)   if q else None,
         )
 
     except Exception as exc:

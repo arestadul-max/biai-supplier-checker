@@ -115,6 +115,12 @@ class DocumentResult:
     evidence:       list[str] = field(default_factory=list)
     rule_results:   list[RuleResult] = field(default_factory=list)
 
+    # Extracted line-item details from the supplier PDF
+    description:    Optional[str]   = None
+    quantity:       Optional[float] = None
+    unit:           Optional[str]   = None
+    unit_price:     Optional[float] = None
+
     # Set when a human overrides a NEEDS_PERSON result
     human_override: Optional[str] = None
     human_name:     Optional[str] = None

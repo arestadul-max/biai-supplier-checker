@@ -99,24 +99,88 @@ Current values match company-rules.md exactly:
 
 ## WEB APPLICATION
 
-The app has THREE upload boxes (drag-and-drop + file picker):
-1. Supplier PDFs (one or many; also accept .zip containing PDFs)
-2. Purchase request CSV
-3. Company rules .md file
+### Core Concept
+**DocCheck** — a single-page compliance checker for procurement teams.
+Upload supplier PDFs + a purchase request CSV + a company rules file → get
+instant Approve / Reject / Needs-a-person decisions with quoted evidence.
+No login required (localStorage auth with namespace `dckyy_`).
+The app is a FastAPI backend (`web/app.py`) + SPA frontend (`web/static/index_yoyu.html`).
+
+### Three Upload Zones
+1. **Supplier PDFs** — one or many; also accept a .zip containing PDFs
+2. **Purchase Request CSV** — must have the required columns
+3. **Company Rules .md** — displayed for reference only (not parsed)
 
 Nothing is loaded silently from disk. Results come only from uploaded files.
-The Check button is disabled until all needed files are uploaded.
-File validation checks real content (PDF starts with %PDF; CSV has required columns).
+The Check button is disabled until all three zones have valid files.
+File validation checks real content (PDF starts with `%PDF`; CSV has required columns).
 A bad file never crashes: it is rejected with a clear message or escalated.
 
 The uploaded rules file is **displayed for reference only**. The page must state:
 > "Rules are applied from the built-in configuration (rules_config.json);
 > the uploaded rules file is shown for reference and is not parsed automatically."
 
-Results page shows: file, supplier, item, decision (colour-coded), reason,
-exact quoted evidence. Summary: counts of Approve / Reject / Needs a person.
-Download buttons: report.md and results.json.
-"Needs a person" rows show Approve/Reject override buttons + name/reason fields.
+### Views / Navigation
+The SPA has four views, switched via the top nav bar:
+- **Dashboard** — recent session summary tiles (last 3 sessions); each row is
+  clickable and jumps to that session in History with the row expanded.
+- **Check Documents** — the three upload zones + "Run Compliance Check →" button.
+  After a check completes a second button "↺ New Check" appears to reset everything.
+- **History** — full paginated list of past check sessions stored in localStorage.
+  Each session row expands to show all result cards for that run.
+- *(implicit)* Results overlay — after a check the results appear in-page below the
+  upload zone; no separate page navigation needed.
+
+### Result Cards (rcard)
+Each supplier document gets one collapsible card:
+- **Header** (always visible): coloured badge (Approve=green, Reject=red,
+  Needs-a-person=amber), supplier name, Item letter, filename.
+- **Body** (expanded on click): 8-cell details grid showing Supplier, Item,
+  Description (spans 2 cols), Quantity, Unit, Unit Price (BDT), File, Decision;
+  then "Decision Reasons" bulleted list; then "Evidence from Document" blockquotes
+  with verbatim text from the PDF.
+- **Override controls** (Needs-a-person only): Approve / Reject buttons + name and
+  reason text fields so a human reviewer can record their sign-off.
+
+### Session History (localStorage)
+Sessions stored in `dckyy_history` as an array of:
+```
+{ id, email, date, summary:{total,approve,reject,review},
+  results:[{file,supplier,item,description,quantity,unit,unit_price,
+            decision,reasons,evidence,human_override,human_name,human_reason,error}],
+  rules_text, rules_name }
+```
+New fields added to `DocumentResult` and serialised in `/check`:
+`description` (str), `quantity` (float), `unit` (str), `unit_price` (float).
+
+### Downloads
+- **report.md** — Markdown report with summary table + per-supplier detail sections
+  (uses tables, labelled evidence blockquotes, human-override notes).
+- **results.json** — raw JSON of the full results array.
+Both are generated server-side by `/download-report` and `/download-json` endpoints.
+
+### Design Language (index_yoyu.html)
+- Dark/light theme toggle; CSS tokens on `:root`; dark via `[data-theme="dark"]`.
+- Monospace brand: "Space Mono" for the logo + file names; "Inter" for body text.
+- Color tokens: `--green`, `--red`, `--amber`, `--blue` for decision badges.
+- Layout: narrow centred column (`max-width: 860px`) with generous whitespace.
+- No external CSS framework — all styles inline in the HTML file.
+- Badge classes: `.b-approve`, `.b-reject`, `.b-review` mapped from decision string.
+- Grid classes: `.rcard-details-grid`, `.rcard-detail-cell`, `.rcard-detail-label`,
+  `.rcard-detail-val`, `.rcard-section-label`, `.rcard-reasons-list`, `.evidence-box`.
+- Table class `.dt` used for dashboard session rows; rows get `class="clickable"`.
+
+### Key JavaScript Functions (index_yoyu.html)
+- `runCheck()` — POSTs files to `/check`, stores session in history, calls `renderResults()`.
+- `resetCheck()` — clears uploads, hides results, hides "↺ New Check" button.
+- `renderResults(data)` — builds result cards, shows summary, reveals "↺ New Check".
+- `buildRCard(r, uid, readOnly)` — renders one result card HTML string.
+- `toggleRCard(head)` — expand/collapse a card body.
+- `renderDashRecent()` — renders last-3-sessions summary table on Dashboard.
+- `goToSession(id)` — switches to History view and scrolls/expands that session's card.
+- `showView(name)` — switches between dashboard / check / history views.
+- `buildResultsPrintHTML(data)` — generates printable HTML for the in-page iframe overlay.
+- `decClass(decision)` / `decLabel(decision)` — map decision string → CSS class / label text.
 
 ---
 
@@ -137,13 +201,20 @@ Download buttons: report.md and results.json.
 |-------|--------|-------|
 | CLAUDE.md created | DONE | 2026-11-03 |
 | Step 1 — manual analysis | DONE | See analysis table below |
-| STEP 1 questions answered | PENDING | Waiting for user |
-| Models / extractor | NOT STARTED | |
-| LangGraph pipeline | NOT STARTED | |
-| Command-line runner | NOT STARTED | |
-| Web app (FastAPI + frontend) | NOT STARTED | |
-| Tests | NOT STARTED | |
-| Deployment | NOT STARTED | |
+| Models / extractor | DONE | `src/models.py`, `src/extractor.py` |
+| LangGraph pipeline | DONE | `src/pipeline.py` — 5-node fixed graph |
+| Rules engine | DONE | `src/rules.py` + `rules_config.json` |
+| Command-line runner | DONE | `cli.py` |
+| Web app — FastAPI backend | DONE | `web/app.py` |
+| Web app — SPA frontend | DONE | `web/static/index_yoyu.html` |
+| Supplier detail extraction | DONE | description/quantity/unit/unit_price in results |
+| Human override flow | DONE | Needs-a-person cards show Approve/Reject buttons |
+| Session history | DONE | localStorage `dckyy_history`; History view |
+| Dashboard | DONE | Last-3-sessions tiles; click → History |
+| Download report | DONE | report.md (tables + evidence) + results.json |
+| New Check button | DONE | Appears after check; resets all state |
+| Tests | PARTIAL | Basic smoke tests only |
+| Deployment | PARTIAL | Render URL in README; push to GitHub still pending |
 
 ---
 

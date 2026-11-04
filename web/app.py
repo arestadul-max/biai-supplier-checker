@@ -14,7 +14,7 @@ import zipfile
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -38,12 +38,30 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 app = FastAPI(title="Supplier Document Checker", version="1.0.0")
+
+
+@app.middleware("http")
+async def no_cache_html(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path in ("/", "/classic") or request.url.path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    """Serve the single-page frontend."""
+    """Serve the premium frontend (main)."""
+    return FileResponse(STATIC_DIR / "index_premium.html")
+
+
+@app.get("/classic", response_class=HTMLResponse)
+async def classic():
+    """Serve the original frontend (kept for reference)."""
     return FileResponse(STATIC_DIR / "index.html")
 
 
@@ -163,6 +181,10 @@ async def check_documents(
             "file":           r.pdf_filename,
             "supplier":       r.supplier_name,
             "item":           r.item_letter,
+            "description":    r.description,
+            "quantity":       r.quantity,
+            "unit":           r.unit,
+            "unit_price":     r.unit_price,
             "decision":       r.decision,
             "reasons":        r.reasons,
             "evidence":       [e for e in r.evidence if e],
