@@ -128,17 +128,19 @@ input,textarea{font-family:inherit}
 /* compat: keep logo-mark hidden, we use logo-icon SVG */
 .logo-mark{display:none!important}
 
-.nav{display:flex;align-items:center;gap:2px;flex:1;min-width:0;}
+.nav{display:flex;align-self:stretch;align-items:stretch;gap:0;flex:1;min-width:0;}
 .nav-btn{
-  height:36px;padding:0 14px;
-  border-radius:var(--pill);
-  font-size:0.85rem;font-weight:500;
+  height:100%;padding:0 18px;
+  border-radius:0;
+  font-size:0.88rem;font-weight:500;
   color:var(--txt-mid);border:none;background:transparent;
   cursor:pointer;white-space:nowrap;
-  transition:background .15s,color .15s;
+  border-bottom:2px solid transparent;
+  display:flex;align-items:center;
+  transition:color .15s,border-color .15s;
 }
-.nav-btn:hover{background:var(--panel);color:var(--txt);}
-.nav-btn.active{background:var(--accent);color:#fff;}
+.nav-btn:hover{background:transparent;color:var(--txt);}
+.nav-btn.active{background:transparent;color:var(--txt);border-bottom-color:var(--accent);}
 
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
 .theme-toggle{
@@ -225,23 +227,97 @@ input,textarea{font-family:inherit}
 /* ── STAT TILES ── */
 .stat-row{
   display:grid;grid-template-columns:repeat(4,1fr);
-  gap:16px;margin-bottom:40px;
+  gap:16px;margin-bottom:32px;
 }
 .stat-cell{
   background:var(--surface);border-radius:var(--r);
-  padding:22px 24px;box-shadow:var(--s1);
+  padding:20px 22px;box-shadow:var(--s1);
   border:1px solid var(--bk-lt);
+  display:flex;align-items:center;gap:16px;
+}
+.stat-icon-box{
+  width:48px;height:48px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.stat-info{flex:1;min-width:0;}
+.stat-lbl{
+  font-size:0.84rem;font-weight:500;
+  color:var(--txt-mid);margin-bottom:6px;
+  text-transform:none;letter-spacing:0;
 }
 .stat-num{
   font-family:'Plus Jakarta Sans',sans-serif;
-  font-size:clamp(2.2rem,4vw,3rem);
-  font-weight:300;line-height:1;
-  margin-bottom:6px;letter-spacing:-0.04em;
+  font-size:clamp(1.7rem,2.8vw,2.3rem);
+  font-weight:700;line-height:1;
+  margin-bottom:0;letter-spacing:-0.04em;
 }
-.stat-lbl{
-  font-size:0.72rem;font-weight:600;text-transform:uppercase;
-  letter-spacing:0.08em;color:var(--txt-soft);
+
+/* ── TOPBAR EXTRAS ── */
+.topbar-sep{width:1px;height:28px;background:var(--bk-lt);flex-shrink:0;margin:0 4px;}
+.btn-newcheck{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 16px;border-radius:var(--pill);
+  background:var(--accent);color:#fff;
+  font-size:0.84rem;font-weight:600;
+  border:none;cursor:pointer;flex-shrink:0;
+  transition:background .15s;white-space:nowrap;
 }
+.btn-newcheck:hover{background:var(--accent-h);}
+
+/* ── DASH HEADER ROW ── */
+.dash-head-row{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:16px;margin-bottom:28px;flex-wrap:wrap;
+}
+.dash-head-title{font-size:clamp(1.6rem,3vw,2.1rem);font-weight:800;letter-spacing:-0.03em;line-height:1.1;color:var(--txt);}
+.dash-head-sub{font-size:0.9rem;color:var(--txt-mid);margin-top:4px;}
+
+/* ── DATE DROPDOWN ── */
+.ddr-wrap{position:relative;flex-shrink:0;align-self:flex-start;}
+.ddr-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px;border-radius:var(--r);
+  border:1px solid var(--bk-lt);background:var(--surface);
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:0.84rem;font-weight:500;color:var(--txt);
+  cursor:pointer;white-space:nowrap;
+  transition:border-color .15s;
+}
+.ddr-btn:hover{border-color:var(--accent);}
+.ddr-menu{
+  position:absolute;top:calc(100% + 6px);right:0;
+  background:var(--surface);border:1px solid var(--bk-lt);
+  border-radius:var(--r);box-shadow:var(--s3);
+  min-width:170px;z-index:300;overflow:hidden;
+}
+.ddr-opt{
+  display:block;width:100%;text-align:left;
+  padding:9px 16px;border:none;background:transparent;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:0.84rem;color:var(--txt);cursor:pointer;
+  transition:background .12s;
+}
+.ddr-opt:hover{background:var(--panel);}
+.ddr-opt.active{color:var(--accent);font-weight:600;}
+.ddr-divider{height:1px;background:var(--bk-lt);margin:4px 0;}
+.ddr-custom{padding:10px 12px;border-top:1px solid var(--bk-lt);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.ddr-custom .df-date{flex:1;min-width:90px;padding:4px 7px;font-size:0.76rem;}
+.ddr-custom .df-apply{padding:4px 10px;font-size:0.76rem;}
+
+/* ── RECENT CHECKS HEADER ── */
+.recent-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding-bottom:14px;margin-bottom:0;
+  border-bottom:1px solid var(--bk-lt);
+}
+.recent-head-title{font-size:1rem;font-weight:700;color:var(--txt);}
+.view-hist-link{
+  font-size:0.84rem;font-weight:500;color:var(--accent);
+  cursor:pointer;display:flex;align-items:center;gap:4px;
+  transition:opacity .15s;
+}
+.view-hist-link:hover{opacity:0.75;}
 
 /* ── MINI HEADER ── */
 .mini-head{
@@ -742,7 +818,9 @@ details.thresh-box:not([open]) .thresh-sum::after{content:'▼';}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;}
 
 /* ── EMPTY ── */
-.empty{text-align:center;padding:72px 20px;color:var(--txt-soft);}
+.empty{text-align:center;padding:56px 20px 44px;color:var(--txt-soft);}
+.empty-illus{display:flex;justify-content:center;margin-bottom:20px;}
+.empty-note{font-size:0.75rem;color:var(--txt-soft);margin-top:10px;}
 .empty-hed{
   font-size:1.2rem;font-weight:700;
   letter-spacing:-0.02em;margin-bottom:8px;color:var(--txt-mid);
@@ -784,12 +862,19 @@ details.thresh-box:not([open]) .thresh-sum::after{content:'▼';}
     overflow-x:auto;overflow-y:hidden;
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;
-    gap:2px;
+    gap:0;
   }
   .nav::-webkit-scrollbar{display:none;}
-  .nav-btn{padding:0 10px;font-size:0.82rem;height:32px;white-space:nowrap;flex-shrink:0;}
+  .nav-btn{padding:0 12px;font-size:0.82rem;height:56px;white-space:nowrap;flex-shrink:0;}
+  .btn-newcheck .nc-text{display:none;}
+  .btn-newcheck{padding:7px 10px;}
+  .topbar-sep{display:none;}
   .page{padding-top:24px;padding-bottom:60px;}
   .stat-row{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .stat-cell{padding:14px 16px;gap:12px;}
+  .stat-icon-box{width:40px;height:40px;}
+  .dash-head-row{flex-direction:column;gap:10px;margin-bottom:20px;}
+  .ddr-btn{font-size:0.8rem;padding:6px 11px;}
 }
 </style>
 
@@ -882,12 +967,17 @@ details.thresh-box:not([open]) .thresh-sum::after{content:'▼';}
     </div>
     <!-- keep logo-mark for JS compat — hidden via CSS -->
     <div class="logo-mark" style="display:none"><span></span><span></span><span></span><span></span></div>
+    <div class="topbar-sep"></div>
     <div class="nav">
-      <button class="nav-btn active" onclick="showView('dashboard')" data-view="dashboard">Dashboard</button>
-      <button class="nav-btn" onclick="showView('checker')" data-view="checker">Check Documents</button>
+      <button class="nav-btn active" onclick="showView('dashboard')" data-view="dashboard">Overview</button>
+      <button class="nav-btn" onclick="showView('checker')" data-view="checker">Documents</button>
       <button class="nav-btn" onclick="showView('history')" data-view="history">History</button>
     </div>
     <div class="topbar-right">
+      <button class="btn-newcheck" onclick="showView('checker')">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="nc-text">New check</span>
+      </button>
       <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark / light mode">
         <span class="theme-icon" id="theme-icon">☾</span>
         <span id="theme-label" style="display:none">Dark</span>
@@ -901,44 +991,87 @@ details.thresh-box:not([open]) .thresh-sum::after{content:'▼';}
 
   <!-- ── DASHBOARD ── -->
   <div id="v-dashboard" class="page">
-    <div class="sec-head">
-      <span class="sec-title">Dashboard</span>
-      <span class="sec-sub" id="dash-sub">Your compliance overview</span>
+
+    <!-- Header: title left, date dropdown right -->
+    <div class="dash-head-row">
+      <div>
+        <div class="dash-head-title">Overview</div>
+        <div class="dash-head-sub" id="dash-sub">Welcome back</div>
+      </div>
+      <div class="ddr-wrap" id="ddr-wrap">
+        <button class="ddr-btn" onclick="toggleDDR()">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+            <rect x="1" y="2.5" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M1 6h13" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M5 1v3M10 1v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          <span id="ddr-label">All time</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="ddr-menu" id="ddr-menu" hidden>
+          <button class="ddr-opt active" data-dr="all"   onclick="pickDRange('all')">All time</button>
+          <button class="ddr-opt"        data-dr="today" onclick="pickDRange('today')">Today</button>
+          <button class="ddr-opt"        data-dr="7d"    onclick="pickDRange('7d')">Last 7 days</button>
+          <button class="ddr-opt"        data-dr="30d"   onclick="pickDRange('30d')">Last 30 days</button>
+          <div class="ddr-divider"></div>
+          <button class="ddr-opt"        data-dr="custom" onclick="pickDRange('custom')">Custom range</button>
+          <div class="ddr-custom" id="ddr-custom-row" hidden>
+            <input type="date" class="df-date" id="d-from" title="From date">
+            <span style="color:var(--txt-soft);font-size:0.72rem">→</span>
+            <input type="date" class="df-date" id="d-to" title="To date">
+            <button class="df-apply" onclick="setDRange('custom');closeDDR()">Apply</button>
+          </div>
+        </div>
+        <!-- hidden compat elements -->
+        <span class="range-label" id="d-range-lbl" style="display:none"></span>
+      </div>
     </div>
 
-    <div class="date-filter">
-      <button class="df-preset active" data-dr="all"   onclick="setDRange('all')">All time</button>
-      <button class="df-preset"        data-dr="today" onclick="setDRange('today')">Today</button>
-      <button class="df-preset"        data-dr="7d"    onclick="setDRange('7d')">Last 7 days</button>
-      <button class="df-preset"        data-dr="30d"   onclick="setDRange('30d')">Last 30 days</button>
-      <span class="df-sep">or</span>
-      <input type="date" class="df-date" id="d-from" title="From date">
-      <span style="color:var(--txt-soft);font-size:0.72rem">→</span>
-      <input type="date" class="df-date" id="d-to" title="To date">
-      <button class="df-apply" onclick="setDRange('custom')">Apply</button>
-      <span class="range-label" id="d-range-lbl"></span>
-    </div>
-
+    <!-- Stat tiles -->
     <div class="stat-row">
       <div class="stat-cell">
-        <div class="stat-num" id="stat-total">0</div>
-        <div class="stat-lbl">Total documents</div>
+        <div class="stat-icon-box" style="background:var(--panel)">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="4" y="2" width="14" height="18" rx="2" stroke="var(--txt-mid)" stroke-width="1.5"/><path d="M7 7h8M7 11h8M7 15h5" stroke="var(--txt-mid)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-lbl">Total documents</div>
+          <div class="stat-num" id="stat-total">0</div>
+        </div>
       </div>
       <div class="stat-cell">
-        <div class="stat-num" style="color:var(--green)" id="stat-approve">0</div>
-        <div class="stat-lbl">Approved</div>
+        <div class="stat-icon-box" style="background:var(--green-bg)">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8.5" stroke="var(--green)" stroke-width="1.5"/><path d="M7.5 11.5l2.5 2.5 4.5-5" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-lbl">Approved</div>
+          <div class="stat-num" style="color:var(--green)" id="stat-approve">0</div>
+        </div>
       </div>
       <div class="stat-cell">
-        <div class="stat-num" style="color:var(--red)" id="stat-reject">0</div>
-        <div class="stat-lbl">Rejected</div>
+        <div class="stat-icon-box" style="background:var(--red-bg)">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8.5" stroke="var(--red)" stroke-width="1.5"/><path d="M8 8l6 6M14 8l-6 6" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-lbl">Rejected</div>
+          <div class="stat-num" style="color:var(--red)" id="stat-reject">0</div>
+        </div>
       </div>
       <div class="stat-cell">
-        <div class="stat-num" style="color:var(--amber)" id="stat-review">0</div>
-        <div class="stat-lbl">Needs person review</div>
+        <div class="stat-icon-box" style="background:var(--amber-bg)">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3L2.5 18h17L11 3z" stroke="var(--amber)" stroke-width="1.5" stroke-linejoin="round"/><path d="M11 10v4" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round"/><circle cx="11" cy="16" r="0.75" fill="var(--amber)"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-lbl">Needs review</div>
+          <div class="stat-num" style="color:var(--amber)" id="stat-review">0</div>
+        </div>
       </div>
     </div>
 
-    <div class="mini-head">Recent check sessions</div>
+    <!-- Recent checks section -->
+    <div class="recent-head">
+      <span class="recent-head-title">Recent checks</span>
+      <span class="view-hist-link" onclick="showView('history')">View history →</span>
+    </div>
     <div id="dash-recent"></div>
   </div>
 
@@ -1224,6 +1357,15 @@ function showView(name){
 
 /* ── DATE RANGE ── */
 const dState = { dash:'all', hist:'all' };
+const _ddrLabels = { all:'All time', today:'Today', '7d':'Last 7 days', '30d':'Last 30 days', custom:'Custom range' };
+function toggleDDR(){ const m=$('ddr-menu'); if(m) m.hidden=!m.hidden; }
+function closeDDR(){ const m=$('ddr-menu'); if(m) m.hidden=true; }
+function pickDRange(p){
+  const lbl=$('ddr-label'); if(lbl) lbl.textContent=_ddrLabels[p]||'All time';
+  const cr=$('ddr-custom-row'); if(cr) cr.hidden=(p!=='custom');
+  if(p!=='custom'){ setDRange(p); closeDDR(); }
+}
+document.addEventListener('click', e=>{ if(!e.target.closest('#ddr-wrap')) closeDDR(); });
 
 function getRangeDates(preset, fromId, toId){
   const now  = new Date();
@@ -1335,7 +1477,7 @@ function refreshStats(){
 function renderDashRecent(hist){
   const rec = $('dash-recent');
   if(!hist.length){
-    rec.innerHTML = `<div class="empty"><div class="empty-hed">No checks in this period</div><div class="empty-sub">Upload supplier PDFs to run a compliance check.</div><button class="empty-action" onclick="showView('checker')">Check documents →</button></div>`;
+    rec.innerHTML = `<div class="empty"><div class="empty-illus"><svg width="88" height="88" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="18" y="26" width="40" height="50" rx="5" fill="#818CF8" opacity="0.3" transform="rotate(-8 18 26)"/><rect x="22" y="20" width="40" height="50" rx="5" fill="#818CF8" opacity="0.5" transform="rotate(-3 22 20)"/><rect x="26" y="14" width="40" height="50" rx="5" fill="#6366F1"/><rect x="34" y="27" width="24" height="3" rx="1.5" fill="white" opacity="0.7"/><rect x="34" y="34" width="17" height="2.5" rx="1.25" fill="white" opacity="0.45"/><rect x="34" y="40" width="20" height="2.5" rx="1.25" fill="white" opacity="0.45"/></svg></div><div class="empty-hed">Your first check starts here</div><div class="empty-sub">Upload supplier PDFs to review their compliance.</div><button class="empty-action" onclick="showView('checker')">+ Check documents</button><div class="empty-note">PDF documents supported</div></div>`;
     return;
   }
   const rows = hist.slice(0,8).map(h => {
