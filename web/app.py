@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.models import APPROVE, REJECT, NEEDS_PERSON
 from src.pipeline import load_config, load_pr_items, run_batch
 from src.extractor import extract_pdf_text   # used for PDF content validation
+from src.rules_parser import parse_rules_config
 
 
 # ── Constants ─────────────────────────────────────────────────────────────────
@@ -147,8 +148,10 @@ async def check_documents(
     if csv_err:
         raise HTTPException(400, detail=csv_err)
 
-    # ── 3. Read rules file (stored for display only; not parsed) ─────────────
+    # ── 3. Read and parse rules file ─────────────────────────────────────────
     rules_text = (await rules.read()).decode("utf-8", errors="replace")
+    default_config = load_config()
+    parsed_config, applied_sources = parse_rules_config(rules_text, default_config)
 
     # ── 4. Write files to a temp directory and run the pipeline ──────────────
     tmp_dir = Path(tempfile.mkdtemp(prefix="biai_"))
@@ -164,8 +167,8 @@ async def check_documents(
         pr_path = tmp_dir / "purchase-request.csv"
         pr_path.write_bytes(pr_bytes)
 
-        # Load config and PR items
-        config   = load_config()
+        # Load PR items (config comes from the parsed rules file)
+        config   = parsed_config
         pr_items = load_pr_items(str(pr_path))
 
         # Run the same pipeline as the CLI
@@ -202,9 +205,10 @@ async def check_documents(
     }
 
     return JSONResponse({
-        "results":    output,
-        "summary":    summary,
-        "rules_text": rules_text,
+        "results":         output,
+        "summary":         summary,
+        "rules_text":      rules_text,
+        "applied_sources": applied_sources,
     })
 
 
@@ -236,7 +240,7 @@ async def download_report(payload: dict):
         f"Generated: {datetime.now():%Y-%m-%d %H:%M}",
         "",
         "> **HONESTY NOTE:** Built with AI (Claude). Decisions are deterministic Python — no LLM.\n"
-        "> The rules file below was uploaded for reference only; thresholds come from rules_config.json.",
+        "> Thresholds are extracted from the uploaded rules file; defaults from rules_config.json fill any gaps.",
         "",
         "## Summary",
         "",
