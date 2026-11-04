@@ -19,7 +19,10 @@ if DATABASE_URL:
     # Render provides postgres:// but SQLAlchemy 2.x needs postgresql://
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    engine = create_engine(DATABASE_URL)
+    # Explicitly use psycopg2 — SQLAlchemy 2.x otherwise tries psycopg3 first
+    if DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 else:
     # Local dev: SQLite in the project root
     _db_path = os.path.join(os.path.dirname(__file__), "..", "doccheck.db")
