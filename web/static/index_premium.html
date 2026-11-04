@@ -769,6 +769,29 @@ details.thresh-box:not([open]) .thresh-sum::after{content:'▼';}
   .rcard-decision{min-width:80px;}
   .df-sep,.df-date,.df-apply{display:none;}
 }
+@media(max-width:540px){
+  .topbar{
+    flex-wrap:wrap;
+    height:auto;
+    padding:8px max(12px,env(safe-area-inset-left,0px));
+    gap:0;
+    row-gap:0;
+  }
+  .logo{flex:1;margin-right:8px;}
+  .topbar-right{margin-left:0;gap:6px;}
+  #user-label{display:none;}
+  .user-chip{padding:5px 8px;}
+  .nav{
+    order:3;
+    width:100%;
+    justify-content:center;
+    padding:6px 0 4px;
+    border-top:1px solid var(--bk-lt);
+    margin-top:6px;
+    gap:4px;
+  }
+  .nav-btn{padding:0 10px;font-size:0.78rem;height:30px;}
+}
 </style>
 
 <!-- ── AUTH ── -->
@@ -1743,7 +1766,7 @@ function _printHTML(html){
       <span>Report Preview</span>
       <button onclick="document.getElementById('_print-frame').contentWindow.print()"
         style="margin-left:auto;padding:7px 16px;background:#6366F1;color:#fff;border:none;cursor:pointer;font-family:inherit;font-weight:600;font-size:.78rem;border-radius:6px;">
-        Print / Save as PDF
+        Save as PDF
       </button>
       <button onclick="document.getElementById('_report-overlay').remove()"
         style="padding:7px 14px;background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2);cursor:pointer;font-family:inherit;font-weight:600;font-size:.78rem;border-radius:6px;">
