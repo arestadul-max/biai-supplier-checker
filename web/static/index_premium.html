@@ -1877,7 +1877,7 @@ function dlReport(){
 }
 
 function downloadSessionPDF(id){
-  const all=JSON.parse(localStorage.getItem(NS+'history')||'[]');
+  const all=getHistory();
   const h=all.find(x=>x.id===id);
   if(!h) return;
   const d=new Date(h.date);
