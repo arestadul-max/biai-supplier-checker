@@ -1,4 +1,4 @@
-# Supplier Document Checker — BIAI Round 2, Task 1
+# Supplier Document Checker 
 
 > Built with AI (Claude · Anthropic). The code was written by Claude; reviewed, verified and explained by the candidate. BIAI said "Use any AI tools you like. We want to see how you build with them."
 
